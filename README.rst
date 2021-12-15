@@ -11,7 +11,8 @@
 License
 -------
 
-MIT
+Creative Commons Attribution-NonCommercial 4.0 International License
+
 
 Author
 ------
