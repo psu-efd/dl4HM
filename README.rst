@@ -1,4 +1,7 @@
-[![License: CC BY-NC-SA 4.0](https://licensebuttons.net/l/by-nc-sa/4.0/80x15.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+|licensebuttons by-nc-sa-white|
+
+.. |licensebuttons by-nc-sa-white| image:: https://licensebuttons.net/l/by-nc-sa/4.0/80x15.png
+   :target: https://creativecommons.org/licenses/by-nc-sa/4.0/
 
 
 *dl4HM* - Deep Learning for Hydraulic Modeling
