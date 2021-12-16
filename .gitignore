@@ -4,6 +4,8 @@
 
 examples/misc
 
+examples/backwater_curve_surrogate_model/experiments
+
 #exclude SRH-2D results and output files
 *RST*.dat
 *SOF.dat
