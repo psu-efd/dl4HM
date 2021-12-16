@@ -255,8 +255,9 @@ if __name__ == '__main__':
     L = 1000.0  # River length in m
     qw = 6.0  # specific discharge (discharge per unit width)
 
-    NGrid = 1000  # number of grids
+    NGrid = 200  # number of grids
 
+    split_ratio = 0.9  # percentage for training and the rest for testing
 
     #generate bed profiles
     generate_bed_profiles(nProfiles, numPoints, xstart, xend)
@@ -282,7 +283,6 @@ if __name__ == '__main__':
     print("After zb_beds.shape =", zb_beds.shape)
 
     #split the generated data into training data and test data
-    split_ratio = 0.8  #80% for training and the rest for testing
     total_data_len = zb_beds.shape[0]
     training_len = int(total_data_len * split_ratio)
 
