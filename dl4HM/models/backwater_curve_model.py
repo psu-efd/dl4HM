@@ -30,8 +30,10 @@ class BackwaterCurveModel(BaseModelWrapper):
 
     def build_model(self):
         self.model = Sequential()
-        self.model.add(Dense(200, input_dim=self.dataLoader.get_input_data_length(), activation='relu', kernel_initializer='he_uniform'))  #he_uniform
-        self.model.add(Dense(200, activation='relu', kernel_initializer='he_uniform'))
+        self.model.add(Dense(100, input_dim=self.dataLoader.get_input_data_length(), activation='relu', \
+                             kernel_initializer='he_uniform', kernel_regularizer=tf.keras.regularizers.L1(0.0), \
+                             activity_regularizer=tf.keras.regularizers.L2(0.0)))
+        #self.model.add(Dense(200, activation='relu', kernel_initializer='he_uniform'))
         self.model.add(Dense(200, activation='relu', kernel_initializer='he_uniform'))
         self.model.add(Dense(self.dataLoader.get_output_data_length(), activation='linear'))
 

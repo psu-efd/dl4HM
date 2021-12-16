@@ -122,11 +122,11 @@ def predict():
 
     print('Load model weights from checkpoint.')
     #the following path needs to be adjusted according to where the model is saved
-    modelWrapper.load("./experiments/2021-12-15/backwater_curve/checkpoints/backwater_curve-374.hdf5")
+    modelWrapper.load("./experiments/2021-12-15/backwater_curve/checkpoints/backwater_curve-380.hdf5")
 
     print('Make prediction with the trained model.')
 
-    profile_ID = 1  # which profile to predict and plot
+    profile_ID = 20  # which profile to predict and plot
 
     #zb_pred, y_train = data_loader.get_train_data()   #[::10] every 10th x value for plotting
     zb_pred, y_train = data_loader.get_test_data()
