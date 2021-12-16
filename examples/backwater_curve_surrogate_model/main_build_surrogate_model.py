@@ -122,18 +122,20 @@ def predict():
 
     print('Load model weights from checkpoint.')
     #the following path needs to be adjusted according to where the model is saved
-    modelWrapper.load("./experiments/2021-12-15/backwater_curve/checkpoints/backwater_curve-03.hdf5")
+    modelWrapper.load("./experiments/2021-12-15/backwater_curve/checkpoints/backwater_curve-308.hdf5")
 
     print('Make prediction with the trained model.')
-    zb_pred, y_train = data_loader.get_train_data()   #[::10] every 10th x value for plotting
-    WSE_pred = modelWrapper.model.predict(zb_pred)
+
+    profile_ID = 13  # which profile to predict and plot
+
+    #zb_pred, y_train = data_loader.get_train_data()   #[::10] every 10th x value for plotting
+    zb_pred, y_train = data_loader.get_test_data()
+    WSE_pred = modelWrapper.model.predict(np.reshape(zb_pred[profile_ID,:], (1,-1)))
 
     #
-    profile_ID = 12   #which profile to plot
-
     x_pred_plot = data_loader.get_x_train()
     WSE_truth= y_train[profile_ID,:]
-    WSE_pred_plot = WSE_pred[profile_ID,:]
+    WSE_pred_plot = WSE_pred[0]
 
     x_bed_train = data_loader.get_x_bed_train()
 
@@ -144,14 +146,15 @@ def predict():
     plt.plot(x_pred_plot, WSE_truth, 'r', label='Truth')
 
     # plot x vs y_pred
-    plt.scatter(x_pred_plot, WSE_pred_plot, s=10, facecolors='none', edgecolors='k', label='Predicted')
+    #plt.scatter(x_pred_plot, WSE_pred_plot, s=3, facecolors='none', edgecolors='k', label='Predicted')
+    plt.plot(x_pred_plot, WSE_pred_plot, 'b', label='Predicted')
 
     # plot x vs bed elevation
     plt.plot(x_bed_train, zb_pred[profile_ID,:], 'k')
 
     # set the limit for the x and y axes
     # plt.xlim([0,1.0])
-    plt.ylim([-1,3])
+    plt.ylim([-1,3.5])
 
     plt.title('Backwater curve')
     plt.xlabel('x (m)')
@@ -163,8 +166,8 @@ def predict():
 
 if __name__ == '__main__':
 
-    train()
+    #train()
 
-    #predict()
+    predict()
 
     print("All done!")
