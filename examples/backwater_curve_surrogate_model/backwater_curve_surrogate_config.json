@@ -1,0 +1,27 @@
+{
+  "case": {
+    "name": "backwater_curve"
+  },
+  "dataLoader": {
+	"training_data": "backwater_curve_training_data.npz",
+	"testing_data": "backwater_curve_testing_data.npz"
+  },
+  "model":{
+    "learning_rate": 0.001,
+    "optimizer": "adam"
+  },
+  "trainer":{
+    "num_epochs": 500,
+    "batch_size": 10,
+	"validation_split":0.2,
+    "verbose_training": 1
+  },
+  "callbacks":{
+    "checkpoint_monitor": "val_loss",
+    "checkpoint_mode": "min",
+    "checkpoint_save_best_only": true,
+    "checkpoint_save_weights_only": true,
+    "checkpoint_verbose": true,
+    "tensorboard_write_graph": true
+  }
+}

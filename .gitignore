@@ -1,3 +1,31 @@
+# user data
+*.vtk
+*.dat
+
+examples/misc
+
+#exclude SRH-2D results and output files
+*RST*.dat
+*SOF.dat
+*TSO.dat
+*_XMDF.h5
+*_XMDFC.h5
+
+
+# HEC-RAS
+# .hdf
+*.IC.*
+Backup.*
+*.b*
+*.c*
+*.dss
+*.rasmap.backup
+*.x*
+
+# numpy data
+*.npy
+*.npz
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -70,6 +98,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+  
 
 # PyBuilder
 target/
@@ -127,3 +156,32 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# pycharm
+.idea
+
+## File-based project format:
+*.iws
+
+## Plugin-specific files:
+
+# IntelliJ
+/out/
+
+# mpeltonen/sbt-idea plugin
+.idea_modules/
+
+# JIRA plugin
+atlassian-ide-plugin.xml
+
+# Crashlytics plugin (for Android Studio and IntelliJ)
+com_crashlytics_export_strings.xml
+crashlytics.properties
+crashlytics-build.properties
+fabric.properties
+
+
+
+
+
+
