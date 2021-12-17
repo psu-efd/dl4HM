@@ -125,7 +125,7 @@ def predict():
 
     print('Load model weights from checkpoint.')
     #the following path needs to be adjusted according to where the model is saved
-    modelWrapper.load("./experiments/2021-12-16/backwater_curve/checkpoints/backwater_curve-477.hdf5")
+    modelWrapper.load("./experiments/2021-12-16/backwater_curve/checkpoints/backwater_curve-459.hdf5")
 
     print('Make prediction with the trained model.')
 
@@ -206,7 +206,7 @@ def invert():
 
     print('Load model weights from checkpoint.')
     #the following path needs to be adjusted according to where the model is saved
-    modelWrapper.load("./experiments/2021-12-16/backwater_curve/checkpoints/backwater_curve-477.hdf5")
+    modelWrapper.load("./experiments/2021-12-16/backwater_curve/checkpoints/backwater_curve-459.hdf5")
 
     print('Create the inverter.')
     inverter = BackwaterCurveModelInverter(modelWrapper, data_loader, config)
@@ -215,7 +215,53 @@ def invert():
     inverter.invert()
     print_now_time(string_before="Inversion end:")
 
-    print("Inverted zb = ", inverter.get_zb())
+    print("Inverted scaled zb = ", inverter.get_zb())
+
+    # Get the min and max of all variables for scaling
+    zb_beds_min = data_loader.zb_beds_min
+    zb_beds_max = data_loader.zb_beds_max
+    WSE_min = data_loader.WSE_min
+    WSE_max = data_loader.WSE_max
+
+    zb_inverted = inverter.get_zb() * (zb_beds_max - zb_beds_min) + zb_beds_min
+
+    print("Inverted zb = ", zb_inverted)
+
+    zb_truth = data_loader.get_zb_beds_truth()* (zb_beds_max - zb_beds_min) + zb_beds_min
+
+    print("True zb = ", zb_truth)
+
+    WSE_target = inverter.get_WSE_target()
+    WSE_pred = inverter.get_WSE_pred()
+
+    #scale
+    WSE_target = WSE_target * (WSE_max - WSE_min) + WSE_min
+    WSE_pred = WSE_pred * (WSE_max - WSE_min) + WSE_min
+
+    x_bed_train = data_loader.get_x_bed_train()
+    x_pred_plot = data_loader.get_x_train()
+
+    # plot x vs y_pred
+    plt.plot(x_pred_plot, WSE_pred, 'r--', label='Predicted')
+
+    # plot x vs y_truth
+    plt.plot(x_pred_plot, WSE_target, 'r', label='Truth')
+
+    # plot x vs bed elevation
+    plt.plot(x_bed_train, zb_inverted, 'k--', label = 'Inverted zb')
+    plt.plot(x_bed_train, zb_truth, 'k', label = 'True zb')
+
+
+    # set the limit for the x and y axes
+    # plt.xlim([0,1.0])
+    # plt.ylim([-1,3.5])
+
+    plt.title('Backwater curve')
+    plt.xlabel('x (m)')
+    plt.ylabel('elevation (m)')
+    plt.legend()
+    plt.savefig("inversion.png", dpi=300, bbox_inches='tight', pad_inches=0)
+    plt.show()
 
 
 

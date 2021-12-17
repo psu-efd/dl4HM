@@ -21,7 +21,7 @@
   "inverter":{
 	"do_inversion": true,
 	"optimizer": "adam",
-	"learning_rate": 0.001,
+	"learning_rate": 0.05,
 	"inversion_data": "backwater_curve_inversion_data.npz"
   },
   "callbacks":{

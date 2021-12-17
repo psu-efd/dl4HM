@@ -224,11 +224,11 @@ def simulate_all_backwater_curves(nProfiles, x_bed, zb_beds, x0, L, H0, Cz, qw, 
         U = np.delete(U, diverged_curve_IDs, axis=0)
 
     #make plot backwater profiles (diverged profiles not excluded yet)
-    print_backwater_profiles(x, zb_all, WSE)
+    plot_backwater_profiles(x, zb_all, WSE)
 
     return x, WSE, H, U, diverged_curve_IDs
 
-def print_backwater_profiles(x, zb_all, WSE):
+def plot_backwater_profiles(x, zb_all, WSE):
     """Print the bed profiles
 
     :param x:
@@ -272,6 +272,39 @@ def print_backwater_profiles(x, zb_all, WSE):
     # show legend, set its location, font size, and turn off the frame
     # plt.legend(loc='lower right', fontsize=14, frameon=False)
     # plt.savefig("Bed inversion", dpi=300, bbox_inches='tight', pad_inches=0)
+    plt.show()
+
+def plot_one_backwater_profile(x_bed, zb, x, WSE):
+    """Print the bed profiles
+
+    :param x:
+    :param zb:
+    :return:
+    """
+
+    # plot with the simulated results and compare with target
+    fig = plt.figure(figsize=(12, 4))
+    ax = fig.add_subplot(111)
+
+    ax.plot(x, WSE, 'r' )  # WSE
+    ax.plot(x_bed, zb, 'k')  # bed
+
+    ax.set_xlabel('x (m)', fontsize=16)
+    ax.set_ylabel('elevation (m)', fontsize=16)
+
+    # set the limit for the x and y axes
+    # plt.xlim([0,1.0])
+    # plt.ylim([5,45])
+
+    # show the ticks on both axes and set the font size
+    plt.tick_params(axis='both', which='major', labelsize=14)
+
+    # show title and set font size
+    # plt.title('Backwater curve', fontsize=16)
+
+    # show legend, set its location, font size, and turn off the frame
+    # plt.legend(loc='lower right', fontsize=14, frameon=False)
+    plt.savefig("Bed_inversion_truth", dpi=300, bbox_inches='tight', pad_inches=0)
     plt.show()
 
 def minMaxScale2D(twoDArray):
@@ -367,5 +400,8 @@ if __name__ == '__main__':
 
     #save one profile for inversion
     np.savez("backwater_curve_inversion_data.npz", zb_beds=zb_beds[-1, :], WSE=WSE[-1, :])  #take the last one
+
+    plot_one_backwater_profile(x_bed, zb_beds[-1, :]*(zb_beds_max-zb_beds_min)+zb_beds_min, x, \
+                               WSE[-1, :]*(WSE_max-WSE_min)+WSE_min)
 
     print("Done!")

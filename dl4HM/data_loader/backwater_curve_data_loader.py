@@ -117,6 +117,9 @@ class BackwaterCurveDataLoader(BaseDataLoader):
     def get_WSE_inversion(self):
         return self.WSE_inversion
 
+    def get_zb_beds_truth(self):
+        return self.zb_beds_truth
+
     def get_x_train(self):
         return self.x_train
 
