@@ -8,6 +8,7 @@ sys.path.append("../..")  #for execution in terminal
 from dl4HM.data_loader.backwater_curve_data_loader import BackwaterCurveDataLoader
 from dl4HM.models.backwater_curve_model import BackwaterCurveModel
 from dl4HM.trainers.backwater_curve_trainer import BackwaterCurveModelTrainer
+from dl4HM.inverters.backwater_inverter import BackwaterCurveModelInverter
 
 from dl4HM.utils.config import process_config
 from dl4HM.utils.dirs import create_dirs
@@ -18,6 +19,8 @@ from sklearn.metrics import mean_squared_error
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+import json
 
 plt.rc('text', usetex=False)  #allow the use of Latex for math expressions and equations
 plt.rc('font', family='serif') #specify the default font family to be "serif"
@@ -122,9 +125,15 @@ def predict():
 
     print('Load model weights from checkpoint.')
     #the following path needs to be adjusted according to where the model is saved
-    modelWrapper.load("./experiments/2021-12-15/backwater_curve/checkpoints/backwater_curve-380.hdf5")
+    modelWrapper.load("./experiments/2021-12-16/backwater_curve/checkpoints/backwater_curve-477.hdf5")
 
     print('Make prediction with the trained model.')
+
+    #Get the min and max of all variables for scaling
+    zb_beds_min = data_loader.zb_beds_min
+    zb_beds_max = data_loader.zb_beds_max
+    WSE_min = data_loader.WSE_min
+    WSE_max = data_loader.WSE_max
 
     profile_ID = 20  # which profile to predict and plot
 
@@ -137,10 +146,18 @@ def predict():
     WSE_truth= y_train[profile_ID,:]
     WSE_pred_plot = WSE_pred[0]
 
+    zb_plot = zb_pred[profile_ID,:]
+
     x_bed_train = data_loader.get_x_bed_train()
 
     # report model error
     print('MSE: %e' % mean_squared_error(WSE_truth, WSE_pred_plot))
+
+    #scale WSE
+    WSE_truth = WSE_truth*(WSE_max-WSE_min) + WSE_min
+    WSE_pred_plot = WSE_pred_plot * (WSE_max - WSE_min) + WSE_min
+
+    zb_plot = zb_plot * (zb_beds_max - zb_beds_min) + zb_beds_min
 
     # plot x vs y_truth
     plt.plot(x_pred_plot, WSE_truth, 'r', label='Truth')
@@ -150,11 +167,11 @@ def predict():
     plt.plot(x_pred_plot, WSE_pred_plot, 'b', label='Predicted')
 
     # plot x vs bed elevation
-    plt.plot(x_bed_train, zb_pred[profile_ID,:], 'k')
+    plt.plot(x_bed_train, zb_plot, 'k')
 
     # set the limit for the x and y axes
     # plt.xlim([0,1.0])
-    plt.ylim([-1,3.5])
+    #plt.ylim([-1,3.5])
 
     plt.title('Backwater curve')
     plt.xlabel('x (m)')
@@ -164,10 +181,50 @@ def predict():
     plt.show()
 
 
+def invert():
+    """The inversion step
+
+    :return:
+    """
+
+    # capture the config path from the run arguments
+    # then process the json configuration file
+    try:
+        #args = get_args()
+        #config = process_config(args.config)
+
+        #hard-wired the JSON configuration file name
+        config = process_config('backwater_curve_surrogate_config.json')
+    except:
+        raise Exception("missing or invalid arguments")
+
+    print('Create the data loader/generator.')
+    data_loader = BackwaterCurveDataLoader(config)
+
+    print('Create the model wrapper.')
+    modelWrapper = BackwaterCurveModel(config, data_loader)
+
+    print('Load model weights from checkpoint.')
+    #the following path needs to be adjusted according to where the model is saved
+    modelWrapper.load("./experiments/2021-12-16/backwater_curve/checkpoints/backwater_curve-477.hdf5")
+
+    print('Create the inverter.')
+    inverter = BackwaterCurveModelInverter(modelWrapper, data_loader, config)
+
+    print_now_time(string_before="Inversion start:")
+    inverter.invert()
+    print_now_time(string_before="Inversion end:")
+
+    print("Inverted zb = ", inverter.get_zb())
+
+
+
 if __name__ == '__main__':
 
     #train()
 
-    predict()
+    #predict()
+
+    invert()
 
     print("All done!")

@@ -1,12 +1,15 @@
 """
 Generate training data for backwater curve solver surrogate
 """
+import math
 
 import matplotlib.pyplot as plt
 import numpy as np
 from noise import pnoise1, pnoise3
 import random
 from scipy.interpolate import interp1d
+import json
+from numpy import unravel_index
 
 plt.rc('text', usetex=True)  #allow the use of Latex for math expressions and equations
 plt.rc('font', family='serif') #specify the default font family to be "serif"
@@ -90,6 +93,7 @@ def print_bed_profiles(x, zb):
 # f is the dydx slope function
 # x_0 and y_0 are IC
 # h is step size and n is the number of steps
+# The backwater curve equation can't handle transcritical flow. If that happends, return transcritical = True.
 def RK4(f, x_0, y_0, h, n, slope, Cf, qw):
     x_res = np.zeros(n + 1)
     y_res = np.zeros(n + 1)
@@ -97,23 +101,37 @@ def RK4(f, x_0, y_0, h, n, slope, Cf, qw):
     x_res[0] = x_0
     y_res[0] = y_0
     i = 0
+
+    #whether transcritical happened (Fr ~ 1)
+    transcritical = False
+
     while i < n:
-        k1 = f(x, y, slope[i], Cf, qw)
-        k2 = f(x + 0.5 * h, y + 0.5 * k1 * h, slope[i], Cf, qw)
-        k3 = f(x + 0.5 * h, y + 0.5 * k2 * h, slope[i], Cf, qw)
-        k4 = f(x + h, y + k3 * h, slope[i], Cf, qw)
+        k1, transcritical = f(x, y, slope[i], Cf, qw)
+        k2, transcritical = f(x + 0.5 * h, y + 0.5 * k1 * h, slope[i], Cf, qw)
+        k3, transcritical = f(x + 0.5 * h, y + 0.5 * k2 * h, slope[i], Cf, qw)
+        k4, transcritical = f(x + h, y + k3 * h, slope[i], Cf, qw)
         x += h
         y += h * (k1 + 2 * k2 + 2 * k3 + k4) / 6.0
         i = i + 1
         x_res[i] = x
         y_res[i] = y
 
-    return x_res, y_res
+    return x_res, y_res, transcritical
 
 def F_H(x,H,slope,Cf,qw): # F(H) function
-    "F(H) function in the backwater curve"
+    "F(H) function in the backwater curve. It can't handle transcritical."
 
-    return -(slope-Cf*qw**2/9.81/H**3)/(1-qw**2/9.81/H**3)
+    H = max(H, 0.01)    #to make sure we don't have a tiny water depth
+
+    transcritical = False
+
+    #Froude number
+    Fr = qw/H/math.sqrt(9.81*H)
+
+    if math.fabs(Fr - 1.0) < 1E-3:
+        transcritical = True
+
+    return -(slope-Cf*qw**2/9.81/H**3)/(1-qw**2/9.81/H**3), transcritical
 
 def simulate_one_backwater_curve(zb_bed, slope, x0, L, H0, Cz, qw, N):
     "Solve the backwater curve equation with a variable bed"
@@ -125,24 +143,23 @@ def simulate_one_backwater_curve(zb_bed, slope, x0, L, H0, Cz, qw, N):
     step_size = L/(N-1)
 
     # call the ODE solvers
-    x, H = RK4(F_H, x0, H0, step_size, N-1, slope, Cf, qw)
+    x, H, transcritical = RK4(F_H, x0, H0, step_size, N-1, slope, Cf, qw)
+
+    #water surface elevation
+    WSE = zb_bed + H
 
     # whether the solver diverged
     diverged = False
 
     #sanity check
-    if np.min(H) <= 0:
+    if np.min(H) <= 0 or np.max(WSE) > 3.5 or (np.max(WSE) - np.min(WSE)) > 2.0:   #here the max is kind of arbitrary; need to adjust
         diverged = True
         #raise Exception("Negative or zero water depth. The solver diverged.")
-
-
-    #water surface elevation
-    WSE = zb_bed + H
 
     #mean velocity
     U = qw/(H+1e-3)
 
-    return WSE, H, U, diverged
+    return WSE, H, U, (diverged or transcritical)
 
 def simulate_all_backwater_curves(nProfiles, x_bed, zb_beds, x0, L, H0, Cz, qw, N):
     """Solve all backwater curves for all the given bed profiles
@@ -194,8 +211,17 @@ def simulate_all_backwater_curves(nProfiles, x_bed, zb_beds, x0, L, H0, Cz, qw, 
         WSE[i,:], H[i,:], U[i,:], diverged = simulate_one_backwater_curve(zb_all[i,:], slope, x0, L, H0, Cz, qw, N)
 
         if diverged:
-            print("Negative or zero water depth for profile ID ", i)
+            print("Transcritical, negative or zero water depth for profile ID ", i)
             diverged_curve_IDs.append(i)
+
+    #deal with those diverged backwater curves (remove them from the data)
+    if diverged_curve_IDs:
+        print("The following profiles will be removed due to divergence: ", diverged_curve_IDs)
+
+        zb_all = np.delete(zb_all, diverged_curve_IDs, axis=0)
+        WSE = np.delete(WSE, diverged_curve_IDs, axis=0)
+        H = np.delete(H, diverged_curve_IDs, axis=0)
+        U = np.delete(U, diverged_curve_IDs, axis=0)
 
     #make plot backwater profiles (diverged profiles not excluded yet)
     print_backwater_profiles(x, zb_all, WSE)
@@ -215,13 +241,20 @@ def print_backwater_profiles(x, zb_all, WSE):
     ax = fig.add_subplot(111)
 
     # plot profiles (randomly select some to plot)
-    selection = random.sample(range(zb_all.shape[0]), 4)
+    selection = random.sample(range(zb_all.shape[0]), zb_all.shape[0])    #4
 
     colors = ['r', 'b', 'g', 'm', 'c', 'y', 'k']
 
     for i, profile_ID in enumerate(selection):
-        ax.plot(x, WSE[i, :], color=colors[i], )  # WSE
-        ax.plot(x, zb_all[i, :], color=colors[i])  # bed
+        ax.plot(x, WSE[i, :], color=colors[i%7], )  # WSE
+        ax.plot(x, zb_all[i, :], color=colors[i%7])  # bed
+
+    #also plot the one with the largest WSE
+    indices_max_WSE = unravel_index(WSE.argmax(), WSE.shape)
+    print("Maximum WSE happes at ", indices_max_WSE)
+
+    ax.plot(x, WSE[indices_max_WSE[0],:], 'k--')
+    ax.plot(x, zb_all[indices_max_WSE[0], :], 'k--')
 
     ax.set_xlabel('x (m)', fontsize=16)
     ax.set_ylabel('elevation (m)', fontsize=16)
@@ -241,6 +274,19 @@ def print_backwater_profiles(x, zb_all, WSE):
     # plt.savefig("Bed inversion", dpi=300, bbox_inches='tight', pad_inches=0)
     plt.show()
 
+def minMaxScale2D(twoDArray):
+    """
+    linearly scale all elements in a 2D array to (-1,1) based on the min and max of the array.
+
+    :param twoDArray:
+    :return:
+    """
+
+    min = np.min(twoDArray)
+    max = np.max(twoDArray)
+
+    return min, max, (twoDArray - min)/(max - min)
+
 if __name__ == '__main__':
 
     #parameters
@@ -249,7 +295,7 @@ if __name__ == '__main__':
     xstart = 0.0     #starting x
     L = 1000         #river length
     xend = xstart + L  #end x
-    H0 = 2.5    # starting water depth
+    H0 = 2.6    # starting water depth
     #S0 = 2E-4  # background bed slope
     Cz = 22.0  # Chezy friction coefficient
     L = 1000.0  # River length in m
@@ -271,16 +317,31 @@ if __name__ == '__main__':
 
     print("Before zb_beds.shape =", zb_beds.shape)
 
-    #deal with those diverged backwater curves (remove them from the data)
+    #deal with those bed profiles that generate diverged backwater curves (remove them from the data)
     if diverged_curve_IDs:
         print("The following profiles will be removed due to divergence: ", diverged_curve_IDs)
 
         zb_beds = np.delete(zb_beds, diverged_curve_IDs, axis=0)
-        WSE = np.delete(WSE, diverged_curve_IDs, axis=0)
-        H = np.delete(H, diverged_curve_IDs, axis=0)
-        U = np.delete(U, diverged_curve_IDs, axis=0)
 
     print("After zb_beds.shape =", zb_beds.shape)
+
+    #scaling to (-1,1) for all fields
+    zb_beds_min, zb_beds_max, zb_beds = minMaxScale2D(zb_beds)
+    WSE_min, WSE_max, WSE = minMaxScale2D(WSE)
+    H_min, H_max, H = minMaxScale2D(H)
+    U_min, U_max, U = minMaxScale2D(U)
+
+    minMax_dict = {"zb_beds_min": zb_beds_min, \
+                   "zb_beds_max": zb_beds_max, \
+                   "WSE_min": WSE_min, \
+                   "WSE_max": WSE_max, \
+                   "H_min": H_min, \
+                   "H_max": H_max, \
+                   "U_min": U_min, \
+                   "U_max": U_max}
+
+    with open('minMaxVars.json', 'w') as convert_file:
+        convert_file.write(json.dumps(minMax_dict))
 
     #split the generated data into training data and test data
     total_data_len = zb_beds.shape[0]
@@ -303,5 +364,8 @@ if __name__ == '__main__':
     testing_data = np.load("backwater_curve_testing_data.npz")
     print(testing_data.files)
     print(testing_data['WSE'])
+
+    #save one profile for inversion
+    np.savez("backwater_curve_inversion_data.npz", zb_beds=zb_beds[-1, :], WSE=WSE[-1, :])  #take the last one
 
     print("Done!")

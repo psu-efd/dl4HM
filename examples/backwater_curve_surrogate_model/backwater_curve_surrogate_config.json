@@ -4,7 +4,9 @@
   },
   "dataLoader": {
 	"training_data": "backwater_curve_training_data.npz",
-	"testing_data": "backwater_curve_testing_data.npz"
+	"testing_data": "backwater_curve_testing_data.npz",
+	"scaled_data": true,
+	"minMaxVars_file": "minMaxVars.json"
   },
   "model":{
     "learning_rate": 0.001,
@@ -15,6 +17,12 @@
     "batch_size": 10,
 	"validation_split":0.2,
     "verbose_training": 1
+  },
+  "inverter":{
+	"do_inversion": true,
+	"optimizer": "adam",
+	"learning_rate": 0.001,
+	"inversion_data": "backwater_curve_inversion_data.npz"
   },
   "callbacks":{
     "checkpoint_monitor": "val_loss",
