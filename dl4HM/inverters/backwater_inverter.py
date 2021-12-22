@@ -18,7 +18,7 @@ class BackwaterCurveModelInverter(BaseInverter):
 
         #the inversion variable, i.e., zb
         #self.zb_np = np.zeros(self.input_data_length)
-        self.zb_np = np.random.random(self.input_data_length)*0.01
+        self.zb_np = np.random.random(self.input_data_length)*0.0
 
         self.zb = tf.Variable(np.expand_dims(self.zb_np, axis=0), dtype=np.float32)
 
@@ -42,7 +42,7 @@ class BackwaterCurveModelInverter(BaseInverter):
         :return:
         """
 
-        for i in range(3000):
+        for i in range(5000):
             with tf.GradientTape() as tape:
                 # use the surrogate NN model to make a prediction
                 self.WSE_pred = self.modelWrapper.model(self.zb)

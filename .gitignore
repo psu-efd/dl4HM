@@ -5,6 +5,7 @@
 examples/misc
 
 examples/backwater_curve_surrogate_model/experiments
+examples/bathymetry_inversion_2D
 
 #exclude SRH-2D results and output files
 *RST*.dat
