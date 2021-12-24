@@ -2,6 +2,9 @@
 *.vtk
 *.dat
 
+*.mp4
+*.mpeg
+
 examples/misc
 
 examples/backwater_curve_surrogate_model/experiments
