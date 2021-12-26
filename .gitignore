@@ -8,7 +8,13 @@
 examples/misc
 
 examples/backwater_curve_surrogate_model/experiments
-examples/bathymetry_inversion_2D
+examples/bathymetry_inversion_2D/experiments
+examples/bathymetry_inversion_2D/*.png
+examples/bathymetry_inversion_2D/SRH-2D/cases
+examples/bathymetry_inversion_2D/SRH-2D/*.msh
+examples/bathymetry_inversion_2D/SRH-2D/*.npz
+examples/bathymetry_inversion_2D/SRH-2D/*.png
+examples/bathymetry_inversion_2D/SRH-2D/*.tfrecords
 
 sandbox
 

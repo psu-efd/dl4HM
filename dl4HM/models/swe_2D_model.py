@@ -30,7 +30,15 @@ class SWEs2DModel(BaseModelWrapper):
         self.loss_value_epoch = []         #loss due to value error
 
     def build_model(self):
-        self.model = self.fully_connected_MLP_model()
+        self.model = None
+
+        #build the model based on the configuration file
+        if self.config.model.model_type == "fully_connected_MLP":
+            self.model = self.fully_connected_MLP_model()
+        elif self.config.model.model_type == "CNN":
+            self.model = self.CNN_model()
+        else:
+            raise Exception("Specified NN model type not supported.")
 
         self.model.compile(
             loss=self.SWEs2DLossFunction(),
@@ -76,6 +84,81 @@ class SWEs2DModel(BaseModelWrapper):
 
         return fc_model
 
+    def CNN_model(self):
+        """
+        Build a CNN model.
+
+        :return:
+        """
+
+        def conv(input):
+            # Define layers to calculate the convolution and FC part of the network
+            # Arguments:
+            # input -- (?, nh, nw, nc)
+            # Returns: (? 1,1,1024)
+
+            ### Set the number of filters for the first convolutional layer
+            x = layers.Conv2D(128, (4, 4), strides=(2, 2), padding='same', name='conv1', activation='relu')(input)
+
+            ### Set the number of filters and kernel size for the second convolutional layer
+            x = layers.Conv2D(512, (2, 2), strides=(2, 2), padding='same', name='conv2', activation='relu')(x)
+            ###
+
+            x = layers.Flatten()(x)
+
+            ### Add a denslayer with ReLU activation
+            x = layers.Dense(512, activation='relu')(x)
+            ###
+
+            # Reshape the output as 1x1 image with 1024 channels:
+            x = layers.Reshape((1, 1, 512))(x)
+
+            return (x)
+
+        def deconv(input, suffix):
+            # Define layers that perform the deconvolution steps
+            # Arguments:
+            # input -- (?, 1, 1, 1024)
+            # suffix -- name_suffix
+            # Returns -- (?,128,256,1)
+            x = layers.Conv2DTranspose(512, (8, 8), strides=(8, 8), activation='relu', name="deconv1_" + suffix)(input)
+
+            ### Add the 2nd and 3rd Conv2DTranspose layers
+            x = layers.Conv2DTranspose(256, (8, 4), strides=(8, 4), activation='relu', name="deconv2_" + suffix)(x)
+            x = layers.Conv2DTranspose(32, (2, 2), strides=(2, 2), activation='relu', name="deconv3_" + suffix)(x)
+            ###
+
+            x = layers.Conv2DTranspose(1, (2, 2), strides=(2, 2), activation='relu', name="deconv4_" + suffix)(x)
+            x = layers.Permute((2, 1, 3))(x)
+            return x
+
+        def conv_deconv(input):
+            # Combine the convolution / deconvolution steps
+            x = conv(input)
+
+            vx = deconv(x, "vx")
+
+            # create a mask to zero out flow at (and inside) the boundary
+            #vx = layers.Lambda(lambda x: x[0] * (1 - x[1]), name='mask_vx')([vx, input])
+
+            # Add decoder for vy
+            vy = deconv(x, "vy")
+
+            #vy = layers.Lambda(lambda x: x[0] * (1 - x[1]), name='mask_vy')([vy, input])
+
+            # Add decoder for WSE
+            WSE = deconv(x, "WSE")
+
+            output = layers.concatenate([vx, vy, WSE], axis=3)
+
+            return output
+
+        input = tf.keras.Input(shape=tuple(self.dataLoader.input_data_shape), name="bathymetry")
+        output = conv_deconv(input)
+        conv_model = tf.keras.Model(inputs=input, outputs=output)
+
+        return conv_model
+
     def SWEs2DLossFunction(self):
         """Customized loss function for backwater curve
 
@@ -96,7 +179,14 @@ class SWEs2DModel(BaseModelWrapper):
             :return:
             """
 
+            tf.print("\t shape of y_true: ", tf.shape(y_true), output_stream=sys.stdout)
+            tf.print("\t shape of y_pred: ", tf.shape(y_pred), output_stream=sys.stdout)
+
+            # using u, v, and WSE
             loss = tf.nn.l2_loss(y_true - y_pred)
+
+            # using only u and v
+            #loss = tf.nn.l2_loss(y_true[:,:,:,0:2] - y_pred[:,:,:,0:2])
 
             # Add a scalar to tensorboard
             tf.summary.scalar('loss', loss)

@@ -1,0 +1,45 @@
+{
+  "case": {
+    "name": "SRH-2D training data for bathymetry inversion"
+  },
+  "bathymetry parameters": {
+    "comment": "parameters for generating training data from SRH-2D",
+    "amplitude": 0.5,
+    "nx": 101,
+    "ny": 21,
+    "nz": 1000,
+    "xstart": 0,
+    "xend": 100,
+    "ystart": 0,
+    "yend": 20,
+    "zstart": 0,
+    "zend": 100,
+    "xfreq": 0.1,
+    "yfreq": 0.2,
+    "zfreq": 0.2,
+    "xphase": 0,
+    "yphase": 0,
+    "zphase": 0,
+    "bathymetry_data_file_name": "twoD_bathymetry_data.npz"
+  },
+  "SRH-2D cases": {
+    "comment": "parameters for setting up the base case, including parameters for Gmsh.",
+    "Gmsh": {
+      "resolution": 2.0,
+      "xmin": 0.0,
+      "xmax": 100.0,
+      "ymin": 0.0,
+      "ymax": 20.0
+    },
+	"srhhydro_filename": "twoD_channel.srhhydro",
+	"sample_result_n_rows": 21,
+	"sample_result_n_cols": 101,
+	"varialbes_min_max_file_name": "varialbes_min_max.json"
+  },
+  "data generation":{
+    "comment": "parameters for data generation, e.g., the fraction for training, validation, and test.",
+	"training_fraction": 0.7,
+	"validation_fraction": 0.2,
+	"test_fraction": 0.1
+  }
+}
