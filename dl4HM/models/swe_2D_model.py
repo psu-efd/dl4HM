@@ -40,15 +40,15 @@ class SWEs2DModel(BaseModelWrapper):
         else:
             raise Exception("Specified NN model type not supported.")
 
+        # summarize the model
+        self.model.summary()
+        # plot_model(self.model, 'model.png', show_shapes=True)
+
         self.model.compile(
             loss=self.SWEs2DLossFunction(),
             optimizer=self.config.model.optimizer,
             run_eagerly=True,
         )
-
-        # summarize the model
-        self.model.summary()
-        # plot_model(self.model, 'model.png', show_shapes=True)
 
     def fully_connected_MLP_model(self):
         """
@@ -92,64 +92,63 @@ class SWEs2DModel(BaseModelWrapper):
         """
 
         def conv(input):
-            # Define layers to calculate the convolution and FC part of the network
-            # Arguments:
-            # input -- (?, nh, nw, nc)
-            # Returns: (? 1,1,1024)
+            """"
+            Define layers to calculate the convolution and FC part of the network
 
-            ### Set the number of filters for the first convolutional layer
-            x = layers.Conv2D(128, (4, 4), strides=(2, 2), padding='same', name='conv1', activation='relu')(input)
+            """
 
-            ### Set the number of filters and kernel size for the second convolutional layer
-            x = layers.Conv2D(512, (2, 2), strides=(2, 2), padding='same', name='conv2', activation='relu')(x)
-            ###
+            # Set the number of filters for the first convolutional layer
+            x = layers.Conv2D(128, (16, 16), strides=(16, 16), padding='same', name='conv1', activation='relu')(input)
+
+            # Set the number of filters and kernel size for the second convolutional layer
+            x = layers.Conv2D(512, (4, 4), strides=(4, 4), padding='same', name='conv2', activation='relu')(x)
+
+            #x = layers.Conv2D(512, (2, 2), strides=(2, 2), padding='same', name='conv3', activation='relu')(x)
 
             x = layers.Flatten()(x)
 
             ### Add a denslayer with ReLU activation
-            x = layers.Dense(512, activation='relu')(x)
+            x = layers.Dense(1024, activation='relu')(x)
             ###
 
-            # Reshape the output as 1x1 image with 1024 channels:
-            x = layers.Reshape((1, 1, 512))(x)
+            # Reshape the output as 1x1 image with xxx channels:
+            x = layers.Reshape((1, 1, 1024))(x)
 
-            return (x)
+            return x
 
         def deconv(input, suffix):
-            # Define layers that perform the deconvolution steps
-            # Arguments:
-            # input -- (?, 1, 1, 1024)
-            # suffix -- name_suffix
-            # Returns -- (?,128,256,1)
+            """
+            Define layers that perform the deconvolution steps
+
+            """
+
             x = layers.Conv2DTranspose(512, (8, 8), strides=(8, 8), activation='relu', name="deconv1_" + suffix)(input)
 
-            ### Add the 2nd and 3rd Conv2DTranspose layers
-            x = layers.Conv2DTranspose(256, (8, 4), strides=(8, 4), activation='relu', name="deconv2_" + suffix)(x)
+            # Add the 2nd and 3rd Conv2DTranspose layers
+            x = layers.Conv2DTranspose(256, (8, 2), strides=(8, 2), activation='relu', name="deconv2_" + suffix)(x)
             x = layers.Conv2DTranspose(32, (2, 2), strides=(2, 2), activation='relu', name="deconv3_" + suffix)(x)
-            ###
 
-            x = layers.Conv2DTranspose(1, (2, 2), strides=(2, 2), activation='relu', name="deconv4_" + suffix)(x)
-            x = layers.Permute((2, 1, 3))(x)
+            x = layers.Conv2DTranspose(1, (2, 2), strides=(2, 2), activation='linear', name="deconv4_" + suffix)(x)
+            x = layers.Permute((2, 1, 3), name="permute_" + suffix)(x)
+
             return x
 
         def conv_deconv(input):
             # Combine the convolution / deconvolution steps
+
             x = conv(input)
 
+            # Add decoder for vx
             vx = deconv(x, "vx")
-
-            # create a mask to zero out flow at (and inside) the boundary
-            #vx = layers.Lambda(lambda x: x[0] * (1 - x[1]), name='mask_vx')([vx, input])
 
             # Add decoder for vy
             vy = deconv(x, "vy")
 
-            #vy = layers.Lambda(lambda x: x[0] * (1 - x[1]), name='mask_vy')([vy, input])
-
             # Add decoder for WSE
-            WSE = deconv(x, "WSE")
+            #WSE = deconv(x, "WSE")
 
-            output = layers.concatenate([vx, vy, WSE], axis=3)
+            #output = layers.concatenate([vx, vy, WSE], axis=3)
+            output = layers.concatenate([vx, vy], axis=3)
 
             return output
 
@@ -179,14 +178,16 @@ class SWEs2DModel(BaseModelWrapper):
             :return:
             """
 
-            tf.print("\t shape of y_true: ", tf.shape(y_true), output_stream=sys.stdout)
-            tf.print("\t shape of y_pred: ", tf.shape(y_pred), output_stream=sys.stdout)
+            #tf.print("\t shape of y_true: ", tf.shape(y_true), output_stream=sys.stdout)
+            #tf.print("\t shape of y_pred: ", tf.shape(y_pred), output_stream=sys.stdout)
 
             # using u, v, and WSE
-            loss = tf.nn.l2_loss(y_true - y_pred)
+            #loss = tf.nn.l2_loss(y_true - y_pred)
 
             # using only u and v
             #loss = tf.nn.l2_loss(y_true[:,:,:,0:2] - y_pred[:,:,:,0:2])
+            #loss = tf.nn.l2_loss(y_true - y_pred)
+            loss = tf.reduce_mean((y_true - y_pred) * (y_true - y_pred))
 
             # Add a scalar to tensorboard
             tf.summary.scalar('loss', loss)

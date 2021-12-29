@@ -125,98 +125,121 @@ def predict():
 
     print('Load model weights from checkpoint.')
     #the following path needs to be adjusted according to where the model is saved
-    modelWrapper.load("./experiments/2021-12-26/test/checkpoints/test-200.hdf5")
+    modelWrapper.load("./experiments/2021-12-28/test/checkpoints/test-84.hdf5")
 
     print('Make prediction with the trained model.')
 
     #Get the min and max of all variables for scaling
 
 
-    plot_ID = 0  # which one to plot
+    plot_ID = 1  # which one to plot
 
     test_dataset = data_loader.get_test_data()
     iterator = iter(test_dataset)
-    zb_test, vel_WSE_test = next(iterator)
+    zb_test, vel_WSE_test, iBathy_test = next(iterator)
 
     vel_WSE_pred = modelWrapper.model.predict(zb_test)
 
-    fig, axs = plt.subplots(3, 2, figsize=(2 * 10, 3 * 2), sharex=True, sharey=True, facecolor='w', edgecolor='k')
+    fig, axs = plt.subplots(4, 2, figsize=(2 * 10, 4 * 2), sharex=True, sharey=True, facecolor='w', edgecolor='k')
     fig.subplots_adjust(hspace=.2, wspace=.01)
 
+    min = -0.5
+    max = 0.5
+    levels = np.linspace(min, max, 51)
+
     # plot vel_x (simulated)
-    levels = np.linspace(0, 1, 51)
-    cf_zb = axs[0, 0].contourf(np.squeeze(vel_WSE_test[plot_ID, :, :, 0]), levels, vmin=0, vmax=1, cmap=plt.cm.jet)
+    cf_zb = axs[0, 0].contourf(np.squeeze(vel_WSE_test[plot_ID, :, :, 0]), levels, vmin=min, vmax=max, cmap=plt.cm.jet)
     # axs[0, 0].set_xlim([bounds[0], bounds[1]])
     # axs[0, 0].set_ylim([bounds[2], bounds[3]])
     axs[0, 0].set_aspect('equal')
     axs[0, 0].set_title("Simulated vel_x", fontsize=14)
-    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(0, 1, 7), ax=axs[0, 0])
+    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 7), ax=axs[0, 0])
     clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
     clb_zb.ax.tick_params(labelsize=12)
     # clb_zb.set_label('Elevation (m)', labelpad=0.3, fontsize=24)
 
     # plot vel_x (predicted from NN)
-    cf_zb = axs[0, 1].contourf(np.squeeze(vel_WSE_pred[plot_ID, :, :, 0]), levels, vmin=0, vmax=1, cmap=plt.cm.jet)
+    cf_zb = axs[0, 1].contourf(np.squeeze(vel_WSE_pred[plot_ID, :, :, 0]), levels, vmin=min, vmax=max, cmap=plt.cm.jet)
     # axs[0, 0].set_xlim([bounds[0], bounds[1]])
     # axs[0, 0].set_ylim([bounds[2], bounds[3]])
     axs[0, 1].set_aspect('equal')
     axs[0, 1].set_title("Predicted vel_x", fontsize=14)
-    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(0, 1, 7), ax=axs[0, 1])
+    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 7), ax=axs[0, 1])
     clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
     clb_zb.ax.tick_params(labelsize=12)
     # clb_zb.set_label('Elevation (m)', labelpad=0.3, fontsize=24)
 
     # plot vel_y (simulated)
-    levels = np.linspace(0, 1, 51)
-    cf_zb = axs[1, 0].contourf(np.squeeze(vel_WSE_test[plot_ID, :, :, 1]), levels, vmin=0, vmax=1, cmap=plt.cm.jet)
+    cf_zb = axs[1, 0].contourf(np.squeeze(vel_WSE_test[plot_ID, :, :, 1]), levels, vmin=min, vmax=max, cmap=plt.cm.jet)
     # axs[0, 0].set_xlim([bounds[0], bounds[1]])
     # axs[0, 0].set_ylim([bounds[2], bounds[3]])
     axs[1, 0].set_aspect('equal')
     axs[1, 0].set_title("Simulated vel_y", fontsize=14)
-    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(0, 1, 7), ax=axs[1, 0])
+    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 7), ax=axs[1, 0])
     clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
     clb_zb.ax.tick_params(labelsize=12)
     # clb_zb.set_label('Elevation (m)', labelpad=0.3, fontsize=24)
 
     # plot vel_y (predicted from NN)
-    cf_zb = axs[1, 1].contourf(np.squeeze(vel_WSE_pred[plot_ID, :, :, 1]), levels, vmin=0, vmax=1, cmap=plt.cm.jet)
+    cf_zb = axs[1, 1].contourf(np.squeeze(vel_WSE_pred[plot_ID, :, :, 1]), levels, vmin=min, vmax=max, cmap=plt.cm.jet)
     # axs[0, 0].set_xlim([bounds[0], bounds[1]])
     # axs[0, 0].set_ylim([bounds[2], bounds[3]])
     axs[1, 1].set_aspect('equal')
     axs[1, 1].set_title("Predicted vel_y", fontsize=14)
-    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(0, 1, 7), ax=axs[1, 1])
+    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 7), ax=axs[1, 1])
     clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
     clb_zb.ax.tick_params(labelsize=12)
     # clb_zb.set_label('Elevation (m)', labelpad=0.3, fontsize=24)
 
     # plot WSE (simulated)
-    levels = np.linspace(0, 1, 51)
-    cf_zb = axs[2, 0].contourf(np.squeeze(vel_WSE_test[plot_ID, :, :, 2]), levels, vmin=0, vmax=1, cmap=plt.cm.jet)
+    #levels = np.linspace(0, 1, 51)
+    #cf_zb = axs[2, 0].contourf(np.squeeze(vel_WSE_test[plot_ID, :, :, 2]), levels, vmin=0, vmax=1, cmap=plt.cm.jet)
     # axs[0, 0].set_xlim([bounds[0], bounds[1]])
     # axs[0, 0].set_ylim([bounds[2], bounds[3]])
-    axs[2, 0].set_aspect('equal')
-    axs[2, 0].set_title("Simulated WSE", fontsize=14)
-    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(0, 1, 7), ax=axs[2, 0])
+    #axs[2, 0].set_aspect('equal')
+    #axs[2, 0].set_title("Simulated WSE", fontsize=14)
+    #clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(0, 1, 7), ax=axs[2, 0])
+    #clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
+    #clb_zb.ax.tick_params(labelsize=12)
+    # clb_zb.set_label('Elevation (m)', labelpad=0.3, fontsize=24)
+
+    # plot WSE (predicted from NN)
+    #cf_zb = axs[2, 1].contourf(np.squeeze(vel_WSE_pred[plot_ID, :, :, 2]), levels, vmin=0, vmax=1, cmap=plt.cm.jet)
+    # axs[0, 0].set_xlim([bounds[0], bounds[1]])
+    # axs[0, 0].set_ylim([bounds[2], bounds[3]])
+    #axs[2, 1].set_aspect('equal')
+    #axs[2, 1].set_title("Predicted WSE", fontsize=14)
+    #clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(0, 1, 7), ax=axs[2, 1])
+    #clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
+    #clb_zb.ax.tick_params(labelsize=12)
+    # clb_zb.set_label('Elevation (m)', labelpad=0.3, fontsize=24)
+
+    # plot zb
+    cf_zb = axs[3, 0].contourf(np.squeeze(zb_test[plot_ID, :, :, 0]), levels, vmin=min, vmax=max, cmap=plt.cm.terrain)
+    # axs[0, 0].set_xlim([bounds[0], bounds[1]])
+    # axs[0, 0].set_ylim([bounds[2], bounds[3]])
+    axs[3, 0].set_aspect('equal')
+    axs[3, 0].set_title("zb", fontsize=14)
+    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 7), ax=axs[3, 0])
     clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
     clb_zb.ax.tick_params(labelsize=12)
     # clb_zb.set_label('Elevation (m)', labelpad=0.3, fontsize=24)
 
-    # plot vel_y (predicted from NN)
-    cf_zb = axs[2, 1].contourf(np.squeeze(vel_WSE_pred[plot_ID, :, :, 2]), levels, vmin=0, vmax=1, cmap=plt.cm.jet)
+    cf_zb = axs[3, 1].contourf(np.squeeze(zb_test[plot_ID, :, :, 0]), levels, vmin=min, vmax=max, cmap=plt.cm.terrain)
     # axs[0, 0].set_xlim([bounds[0], bounds[1]])
     # axs[0, 0].set_ylim([bounds[2], bounds[3]])
-    axs[2, 1].set_aspect('equal')
-    axs[2, 1].set_title("Predicted WSE", fontsize=14)
-    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(0, 1, 7), ax=axs[2, 1])
+    axs[3, 1].set_aspect('equal')
+    axs[3, 1].set_title("zb", fontsize=14)
+    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 7), ax=axs[3, 1])
     clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
     clb_zb.ax.tick_params(labelsize=12)
     # clb_zb.set_label('Elevation (m)', labelpad=0.3, fontsize=24)
 
     # set labels
-    plt.setp(axs[-1, :], xlabel='x (m)')
-    plt.setp(axs[:, 0], ylabel='y (m)')
+    plt.setp(axs[-1, :], xlabel='x')
+    plt.setp(axs[:, 0], ylabel='y')
 
-    plt.savefig("prediction.png", dpi=300, bbox_inches='tight', pad_inches=0)
+    plt.savefig("prediction_"+str(iBathy_test.numpy()[plot_ID]).zfill(4)+".png", dpi=300, bbox_inches='tight', pad_inches=0)
     plt.show()
 
 
@@ -306,9 +329,9 @@ def invert():
 
 if __name__ == '__main__':
 
-    train()
+    #train()
 
-    #predict()
+    predict()
 
     #invert()
 

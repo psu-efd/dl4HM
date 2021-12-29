@@ -73,6 +73,8 @@ def generate_2D_bed(bathymetry_inversion_2D_config):
     elevationArray = sampled.get_array('elevation').reshape(nz, ny, nx)
     elevationArray = elevationArray.transpose(2,1,0)
 
+    #elevationArray = sampled.get_array('elevation').reshape(nx, ny, nz)
+
     xArray = np.linspace(xstart, xend, nx)
     yArray = np.linspace(ystart, yend, ny)
 
@@ -104,7 +106,8 @@ def plot_sample_bathymetries(nrows, ncolumns, bathymetry_inversion_2D_config):
     choices = np.sort(np.random.choice(nBathy, size=nrows*ncolumns, replace=False))
 
     #force the first choice to be 0
-    #choices[0] = 0
+    choices[0] = 0
+    choices[-1] = nBathy-1
 
     #amplitude of the bathymetry elevation
     amplitude = bathymetry_inversion_2D_config['amplitude']
@@ -120,7 +123,7 @@ def plot_sample_bathymetries(nrows, ncolumns, bathymetry_inversion_2D_config):
     fig.subplots_adjust(hspace=.3, wspace=.05)
 
     for ax, choice in zip(axs.ravel(), choices):
-        cf = ax.contourf(elevation[:,:,choice].T, levels, vmin=zMin,
+        cf = ax.contourf(xArray, yArray, elevation[:,:,choice].T, levels, vmin=zMin,
                          vmax=zMax, cmap=plt.cm.terrain)
         ax.set_xlim([np.min(xArray), np.max(xArray)])
         ax.set_ylim([np.min(yArray), np.max(yArray)])
@@ -175,7 +178,7 @@ def animate_bathymetry_contours(bathymetry_inversion_2D_config):
     axis.set_xlabel('x (m)')
     axis.set_ylabel('y (m)')
 
-    cf = axis.contourf(elevation[:,:,0].T, levels, vmin=zMin, vmax=zMax, cmap=plt.cm.terrain)
+    cf = axis.contourf(xArray, yArray, elevation[:,:,0].T, levels, vmin=zMin, vmax=zMax, cmap=plt.cm.terrain)
 
     # create an axes on the right side of ax. The width of cax will be 5%
     # of ax and the padding between cax and ax will be fixed at 0.05 inch.
@@ -188,16 +191,17 @@ def animate_bathymetry_contours(bathymetry_inversion_2D_config):
     clb.ax.set_title('Unit: m', fontsize=12)
 
     def animate(i):
-        cf = axis.contourf(elevation[:,:,i].T, levels, vmin=zMin, vmax=zMax, cmap=plt.cm.terrain)
+        print(i)
+        cf = axis.contourf(xArray, yArray, elevation[:,:,i].T, levels, vmin=zMin, vmax=zMax, cmap=plt.cm.terrain)
 
         axis.set_title("Bathymetry " + str(i))
 
         return cf
 
-    anim = animation.FuncAnimation(fig, animate, frames=nBathy)
+    anim = animation.FuncAnimation(fig, animate, frames=100)  #nBathy
 
     # save the animation to file
-    FFwriter = animation.FFMpegWriter(bitrate=1500, fps=1)
+    FFwriter = animation.FFMpegWriter(bitrate=1500, fps=10)
     anim.save('bathymetry_animation.mp4', writer=FFwriter)
 
     #plt.show()
@@ -210,13 +214,13 @@ if __name__ == '__main__':
     bathymetry_inversion_2D_config = json.load(f_json)['bathymetry parameters']
 
     #generate the bed bathymetires
-    generate_2D_bed(bathymetry_inversion_2D_config)
+    #generate_2D_bed(bathymetry_inversion_2D_config)
 
     #plot some sample bed bathymetries to visually check (the first two numbers are rows and columns of subplots)
-    plot_sample_bathymetries(2, 2, bathymetry_inversion_2D_config)
+    #plot_sample_bathymetries(2, 2, bathymetry_inversion_2D_config)
 
     #animate the bathymetry contours
-    #animate_bathymetry_contours(bathymetry_inversion_2D_config)
+    animate_bathymetry_contours(bathymetry_inversion_2D_config)
 
     #close the JSON file
     f_json.close()

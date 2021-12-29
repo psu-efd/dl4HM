@@ -25,6 +25,7 @@ import meshio
 import json
 import os
 import shutil
+import time
 
 import matplotlib.ticker as tick
 
@@ -34,7 +35,7 @@ from tensorflow.python.ops.numpy_ops import np_config
 from glob import glob as glb
 import re
 
-import cv2
+#import cv2
 
 
 from pyHMT2D.Hydraulic_Models_Data.SRH_2D import SRH_2D_Data, SRH_2D_Model, SRH_2D_SRHHydro
@@ -232,6 +233,7 @@ def generate_all_SRH_2D_cases(bathymetry_inversion_2D_config):
         shutil.move(newSRHHydroFileName, "cases/case_" + str(iBathy))
         shutil.move(newHydroMatFileName, "cases/case_" + str(iBathy))
         shutil.move(newGridFileName, "cases/case_" + str(iBathy))
+        shutil.move(gmsh3d_fileName, "cases/case_" + str(iBathy))
 
 def run_SRH_2D(srh_caseName):
     """Run SRH-2D simulation
@@ -268,7 +270,9 @@ def run_SRH_2D(srh_caseName):
     my_srh_2d_model.run_pre_model()
 
     #run the SRH-2D model's current project
-    my_srh_2d_model.run_model()
+    bRunSucessful = my_srh_2d_model.run_model(bShowProgress=False)
+    if not bRunSucessful:
+        raise Exception("SRH-2D run failed.")
 
     #close the SRH-2D project
     my_srh_2d_model.close_project()
@@ -380,7 +384,7 @@ def run_all_SRH_2D_cases(bathymetry_inversion_2D_config):
     nBathy = bathymetry_inversion_2D_config['bathymetry parameters']['nz']
 
     # loop over all bathymetries (cases)
-    for iBathy in range(nBathy):
+    for iBathy in range(1):
         print("Running SRH-2D case: ", iBathy, "out of", nBathy-1)
 
         #go into the case's directory
@@ -463,7 +467,7 @@ def sample_all_SRH_2D_cases(bathymetry_inversion_2D_config):
                  water_depth=water_depth, WSE=WSE, bInDomain=bInDomain)
 
         #make a copy of the sampled result file to "cases" directory for convience
-        shutil.copy(srh_caseName +".npz", "/")
+        shutil.copy(srh_caseName +".npz", "../")
 
         #go back to the root
         os.chdir("../..")
@@ -559,9 +563,9 @@ def createTFRecords(bathymetry_inversion_2D_config):
         raise Exception("The specified training, validation, and test fractions do not sum up to 1.0")
 
     # create tf writers
-    training_record_filename = 'train.tfrecords'
-    validation_record_filename = 'validation.tfrecords'
-    test_record_filename = 'test.tfrecords'
+    training_record_filename = 'train_uvonly.tfrecords'
+    validation_record_filename = 'validation_uvonly.tfrecords'
+    test_record_filename = 'test_uvonly.tfrecords'
 
     training_writer = tf.io.TFRecordWriter(training_record_filename)
     validation_writer = tf.io.TFRecordWriter(validation_record_filename)
@@ -576,11 +580,19 @@ def createTFRecords(bathymetry_inversion_2D_config):
     print("\t validation: ", iTraining_validation, " to ", iValidation_test - 1)
     print("\t test: ", iValidation_test, " to ", nBathy - 1)
 
-    # loop over all bathymetries (cases)
-    for iBathy in range(nBathy):
-        print("Processing SRH-2D case: ", iBathy, "out of", nBathy - 1)
+    # randomly shuffle the cases
+    caseIDs_list = [*range(nBathy)]
 
-        data_fileName = "./cases/twoD_channel_" + str(iBathy) + ".npz"
+    rng = np.random.default_rng()
+    rng.shuffle(caseIDs_list, axis=0)
+
+    #print(caseIDs_list)
+
+    # loop over all bathymetries (cases)
+    for iBathy, caseID in zip(range(nBathy), caseIDs_list):
+        print("Processing SRH-2D case: ", iBathy, "out of", nBathy - 1, ", using caseID = ", caseID)
+
+        data_fileName = "./cases/twoD_channel_" + str(caseID) + ".npz"
 
         data = np.load(data_fileName)
 
@@ -591,20 +603,21 @@ def createTFRecords(bathymetry_inversion_2D_config):
         WSE = data['WSE']
 
         #normalize
-        zb_norm = (zb - zb_min)/(zb_max - zb_min)
-        WSE_norm = (WSE - WSE_min) / (WSE_max - WSE_min)
+        zb_norm = (zb - zb_min)/(zb_max - zb_min) - 0.5
+        WSE_norm = (WSE - WSE_min) / (WSE_max - WSE_min) -0.5
 
-        vel_x_norm = (vel_x - vel_x_min) / (vel_x_max - vel_x_min)  #normalization is component-wise
-        vel_y_norm = (vel_y - vel_y_min) / (vel_y_max - vel_y_min)
+        vel_x_norm = (vel_x - vel_x_min) / (vel_x_max - vel_x_min) -0.5  #normalization is component-wise
+        vel_y_norm = (vel_y - vel_y_min) / (vel_y_max - vel_y_min) -0.5
 
-        vel_WSE_norm = np.dstack([vel_x_norm, vel_y_norm, WSE_norm])  # stack x and y velocity to form 3D array
+        #vel_WSE_norm = np.dstack([vel_x_norm, vel_y_norm, WSE_norm])  # stack x and y velocity to form 3D array
+        vel_WSE_norm = np.dstack([vel_x_norm, vel_y_norm,])  # stack x and y velocity to form 3D array
 
         #expand one more dimension to the zb array, e.g., shape=[21, 121] to shape=[21, 121, 1]
         zb_norm = zb_norm[:,:,np.newaxis]
 
         # create example and write it
         example = tf.train.Example(features=tf.train.Features(feature={
-            'iBathy': _int64_feature(iBathy),
+            'iBathy': _int64_feature(caseID),
             'zb':  _bytes_feature(serialize_array(zb_norm)),
             'vel_WSE': _bytes_feature(serialize_array(vel_WSE_norm))}))
 
@@ -615,11 +628,13 @@ def createTFRecords(bathymetry_inversion_2D_config):
         else:
             test_writer.write(example.SerializeToString())
 
-def checkTFRecords(record_filename, bathymetry_inversion_2D_config):
+def checkTFRecords(record_filename, bathymetry_inversion_2D_config, nPlotSamples=1):
     """
     Check the TFRecord
 
     :param bathymetry_inversion_2D_config:
+    :param nPlotSamples: int
+        number of samples to plot. If -1, plot all in the records. Default = 1
     :return:
     """
 
@@ -655,79 +670,115 @@ def checkTFRecords(record_filename, bathymetry_inversion_2D_config):
     # Transform binary data into image arrays
     dataset = dataset.map(parse_flow_data)
 
-    batched_dataset = dataset.batch(32, drop_remainder=True)
+    # IDs in the recrod file
+    IDs = []
 
-    # Create an iterator for reading a batch of input and output data
-    iterator = iter(batched_dataset)
-    IDs, zb, vel_WSE = next(iterator)
+    for record in dataset:
+        ID, zb, vel_WSE = record
+        IDs.append(ID.numpy())
 
-    print("IDs in the batch: ", IDs.numpy())
-    print('Input shape:', zb.shape.as_list())
-    print('Output shape:', vel_WSE.shape.as_list())
+    print("There are total of ", len(IDs), " records in the dataset. They are: ", IDs)
 
-    #make an example plot
-    plot_idx = 1  #index in the batch
+    # randonly draw cases
+    nExamples = 0
+    if nPlotSamples == -1:
+        nExamples = len(IDs)
+    else:
+        if nPlotSamples <= len(IDs):
+            nExamples = nPlotSamples
+        else:
+            raise Exception("The specified number of plots nPlotSamples, ", nPlotSamples, " is larger than the number of records.")
 
-    print("Bathymetry ID of the plotted: ", IDs.numpy()[plot_idx])
+    choices = np.sort(np.random.choice(IDs, size=nExamples, replace=False))
 
-    fig, axs = plt.subplots(2, 2, figsize=(2 * 10, 2 * 2), sharex=True, sharey=True, facecolor='w', edgecolor='k')
-    fig.subplots_adjust(hspace=.1, wspace=.01)
+    print("Chosen case IDs for plotting: ", choices)
 
-    # plot zb
-    levels = np.linspace(0, 1, 51)
-    cf_zb = axs[0, 0].contourf(np.squeeze(zb[plot_idx,:,:,:]), levels, vmin=0, vmax=1, cmap=plt.cm.terrain)
-    #axs[0, 0].set_xlim([bounds[0], bounds[1]])
-    #axs[0, 0].set_ylim([bounds[2], bounds[3]])
-    axs[0, 0].set_aspect('equal')
-    axs[0, 0].set_title("Bed elevation", fontsize=14)
-    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(0, 1, 7), ax=axs[0, 0])
-    clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_zb.ax.tick_params(labelsize=12)
-    # clb_zb.set_label('Elevation (m)', labelpad=0.3, fontsize=24)
+    fig, axs = plt.subplots(2, 2, figsize=(2 * 10, 2 * 2), sharex=True, sharey=True, facecolor='w',
+                            edgecolor='k')
+    fig.subplots_adjust(hspace=.2, wspace=.01)
 
-    # plot WSE
-    levels = np.linspace(0, 1, 51)
-    cf_vel_x = axs[0, 1].contourf(np.squeeze(vel_WSE[plot_idx,:,:,2]), levels, vmin=0, vmax=1, cmap=plt.cm.jet)
-    #axs[1, 0].set_xlim([bounds[0], bounds[1]])
-    #axs[1, 0].set_ylim([bounds[2], bounds[3]])
-    axs[0, 1].set_aspect('equal')
-    axs[0, 1].set_title("WSE", fontsize=14)
-    clb_vel_x = fig.colorbar(cf_vel_x, ticks=np.linspace(0, 1, 7), ax=axs[0, 1])
-    clb_vel_x.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_vel_x.ax.tick_params(labelsize=12)
-    # clb_vel_x.set_label('Ux (m/s)', labelpad=0.3, fontsize=24)
+    counter = 0
 
-    # plot vel_x
-    levels = np.linspace(0, 1, 51)
-    cf_vel_x = axs[1, 0].contourf(np.squeeze(vel_WSE[plot_idx,:,:,0]), levels, vmin=0, vmax=1, cmap=plt.cm.jet)
-    #axs[1, 0].set_xlim([bounds[0], bounds[1]])
-    #axs[1, 0].set_ylim([bounds[2], bounds[3]])
-    axs[1, 0].set_aspect('equal')
-    axs[1, 0].set_title("x-velocity", fontsize=14)
-    clb_vel_x = fig.colorbar(cf_vel_x, ticks=np.linspace(0, 1, 7), ax=axs[1, 0])
-    clb_vel_x.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_vel_x.ax.tick_params(labelsize=12)
-    # clb_vel_x.set_label('Ux (m/s)', labelpad=0.3, fontsize=24)
+    # loop over all records
+    for record in dataset:
+        ID, zb, vel_WSE = record
 
-    # plot vel_y
-    levels = np.linspace(0, 1, 51)
-    cf_vel_y = axs[1, 1].contourf(np.squeeze(vel_WSE[plot_idx,:,:,1]), levels, vmin=0, vmax=1, cmap=plt.cm.jet)
-    #axs[1, 1].set_xlim([bounds[0], bounds[1]])
-    #axs[1, 1].set_ylim([bounds[2], bounds[3]])
-    axs[1, 1].set_aspect('equal')
-    axs[1, 1].set_title("y-velocity", fontsize=14)
-    clb_vel_y = fig.colorbar(cf_vel_y, ticks=np.linspace(0, 1, 7), ax=axs[1, 1])
-    clb_vel_y.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_vel_y.ax.tick_params(labelsize=12)
-    # clb_vel_y.set_label('Uy (m/s)', labelpad=0.3, fontsize=24)
+        if ID.numpy() in choices:
+            counter = counter + 1
 
-    # set labels
-    plt.setp(axs[-1, :], xlabel='x (m)')
-    plt.setp(axs[:, 0], ylabel='y (m)')
+            print("Plotting ID =", ID.numpy(), counter, "out of", len(IDs))
 
-    #plt.savefig("sample_srh_2d_results_" + str(ID) + ".png", dpi=300, bbox_inches='tight', pad_inches=0)
+            # plot zb
+            levels = np.linspace(0, 1, 51)
+            cf_zb = axs[0, 0].contourf(np.squeeze(zb[:, :, :]), levels, vmin=0, vmax=1, cmap=plt.cm.terrain)
+            # axs[0, 0].set_xlim([bounds[0], bounds[1]])
+            # axs[0, 0].set_ylim([bounds[2], bounds[3]])
+            axs[0, 0].set_aspect('equal')
+            axs[0, 0].set_title("Bed elevation", fontsize=14)
+            clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(0, 1, 7), ax=axs[0, 0])
+            clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
+            clb_zb.ax.tick_params(labelsize=12)
+            # clb_zb.set_label('Elevation (m)', labelpad=0.3, fontsize=24)
 
-    plt.show()
+            # plot WSE
+            levels = np.linspace(0, 1, 51)
+            cf_vel_x = axs[0, 1].contourf(np.squeeze(vel_WSE[:, :, 2]), levels, vmin=0, vmax=1,
+                                          cmap=plt.cm.jet)
+            # axs[1, 0].set_xlim([bounds[0], bounds[1]])
+            # axs[1, 0].set_ylim([bounds[2], bounds[3]])
+            axs[0, 1].set_aspect('equal')
+            axs[0, 1].set_title("WSE", fontsize=14)
+            clb_WSE = fig.colorbar(cf_vel_x, ticks=np.linspace(0, 1, 7), ax=axs[0, 1])
+            clb_WSE.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
+            clb_WSE.ax.tick_params(labelsize=12)
+            # clb_vel_x.set_label('Ux (m/s)', labelpad=0.3, fontsize=24)
+
+            # plot vel_x
+            levels = np.linspace(0, 1, 51)
+            cf_vel_x = axs[1, 0].contourf(np.squeeze(vel_WSE[:, :, 0]), levels, vmin=0, vmax=1,
+                                          cmap=plt.cm.jet)
+            # axs[1, 0].set_xlim([bounds[0], bounds[1]])
+            # axs[1, 0].set_ylim([bounds[2], bounds[3]])
+            axs[1, 0].set_aspect('equal')
+            axs[1, 0].set_title("x-velocity", fontsize=14)
+            clb_vel_x = fig.colorbar(cf_vel_x, ticks=np.linspace(0, 1, 7), ax=axs[1, 0])
+            clb_vel_x.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
+            clb_vel_x.ax.tick_params(labelsize=12)
+            # clb_vel_x.set_label('Ux (m/s)', labelpad=0.3, fontsize=24)
+
+            # plot vel_y
+            levels = np.linspace(0, 1, 51)
+            cf_vel_y = axs[1, 1].contourf(np.squeeze(vel_WSE[:, :, 1]), levels, vmin=0, vmax=1,
+                                          cmap=plt.cm.jet)
+            # axs[1, 1].set_xlim([bounds[0], bounds[1]])
+            # axs[1, 1].set_ylim([bounds[2], bounds[3]])
+            axs[1, 1].set_aspect('equal')
+            axs[1, 1].set_title("y-velocity", fontsize=14)
+            clb_vel_y = fig.colorbar(cf_vel_y, ticks=np.linspace(0, 1, 7), ax=axs[1, 1])
+            clb_vel_y.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
+            clb_vel_y.ax.tick_params(labelsize=12)
+            # clb_vel_y.set_label('Uy (m/s)', labelpad=0.3, fontsize=24)
+
+            # set labels
+            plt.setp(axs[-1, :], xlabel='x')
+            plt.setp(axs[:, 0], ylabel='y')
+
+            plt.savefig("./plots/srh_2d_results_from_tfrecrod_" + str(ID.numpy()).zfill(4) + ".png", dpi=300, bbox_inches='tight', pad_inches=0)
+
+            #plt.show()
+
+            for axs_1 in axs:
+                for axs_2 in axs_1:
+                    axs_2.clear()
+
+            clb_zb.remove()
+            clb_WSE.remove()
+            clb_vel_x.remove()
+            clb_vel_y.remove()
+
+    plt.close(fig)
+
+
 
 def plot_one_example_result(ID, example_results, variables_min_max):
     """
@@ -759,12 +810,17 @@ def plot_one_example_result(ID, example_results, variables_min_max):
 
     bounds = variables_min_max['bounds']
 
+    ny, nx = zb.shape[0], zb.shape[1]
+
+    xArray = np.linspace(bounds[0], bounds[1], nx)
+    yArray = np.linspace(bounds[2], bounds[3], ny)
+
     fig, axs = plt.subplots(2, 2, figsize=(2*10, 2*2), sharex=True, sharey=True, facecolor='w', edgecolor='k')
-    fig.subplots_adjust(hspace=.1, wspace=.01)
+    fig.subplots_adjust(hspace=.2, wspace=.01)
 
     # plot zb
     levels = np.linspace(zb_min, zb_max, 51)
-    cf_zb = axs[0,0].contourf(zb, levels, vmin=zb_min, vmax=zb_max, cmap=plt.cm.terrain)
+    cf_zb = axs[0,0].contourf(xArray, yArray, zb, levels, vmin=zb_min, vmax=zb_max, cmap=plt.cm.terrain)
     axs[0,0].set_xlim([bounds[0], bounds[1]])
     axs[0,0].set_ylim([bounds[2], bounds[3]])
     axs[0,0].set_aspect('equal')
@@ -776,7 +832,7 @@ def plot_one_example_result(ID, example_results, variables_min_max):
 
     # plot WSE
     levels = np.linspace(WSE_min, WSE_max, 51)
-    cf_WSE = axs[0, 1].contourf(WSE, levels, vmin=WSE_min, vmax=WSE_max, cmap=plt.cm.jet)
+    cf_WSE = axs[0, 1].contourf(xArray, yArray, WSE, levels, vmin=WSE_min, vmax=WSE_max, cmap=plt.cm.jet)
     axs[0, 1].set_xlim([bounds[0], bounds[1]])
     axs[0, 1].set_ylim([bounds[2], bounds[3]])
     axs[0, 1].set_aspect('equal')
@@ -788,7 +844,7 @@ def plot_one_example_result(ID, example_results, variables_min_max):
 
     # plot vel_x
     levels = np.linspace(vel_x_min, vel_x_max, 51)
-    cf_vel_x = axs[1, 0].contourf(vel_x, levels, vmin=vel_x_min, vmax=vel_x_max, cmap=plt.cm.jet)
+    cf_vel_x = axs[1, 0].contourf(xArray, yArray, vel_x, levels, vmin=vel_x_min, vmax=vel_x_max, cmap=plt.cm.jet)
     axs[1, 0].set_xlim([bounds[0], bounds[1]])
     axs[1, 0].set_ylim([bounds[2], bounds[3]])
     axs[1, 0].set_aspect('equal')
@@ -800,7 +856,7 @@ def plot_one_example_result(ID, example_results, variables_min_max):
 
     # plot vel_y
     levels = np.linspace(vel_y_min, vel_y_max, 51)
-    cf_vel_y = axs[1, 1].contourf(vel_y, levels, vmin=vel_y_min, vmax=vel_y_max, cmap=plt.cm.jet)
+    cf_vel_y = axs[1, 1].contourf(xArray, yArray, vel_y, levels, vmin=vel_y_min, vmax=vel_y_max, cmap=plt.cm.jet)
     axs[1, 1].set_xlim([bounds[0], bounds[1]])
     axs[1, 1].set_ylim([bounds[2], bounds[3]])
     axs[1, 1].set_aspect('equal')
@@ -814,34 +870,38 @@ def plot_one_example_result(ID, example_results, variables_min_max):
     plt.setp(axs[-1, :], xlabel='x (m)')
     plt.setp(axs[:, 0], ylabel='y (m)')
 
-    plt.savefig("sample_srh_2d_results_"+str(ID)+".png", dpi=300, bbox_inches='tight', pad_inches=0)
+    plot_file_name = "sample_srh_2d_results_"+str(ID).zfill(4)+".png"
+
+    plt.savefig(plot_file_name, dpi=300, bbox_inches='tight', pad_inches=0)
 
     # move the figure to the root directory
-    shutil.copy("sample_srh_2d_results_" + str(ID) +".png", "../..")
+    shutil.copy(plot_file_name, "../plots/")
 
     plt.show()
 
-def plot_example_results(bathymetry_inversion_2D_config):
+def plot_example_results(bathymetry_inversion_2D_config, nExamples=4):
     """
     Make plots for some example SRH-2D cases
 
     :param bathymetry_inversion_2D_config:
+    :param nExamples: int
+        number of examples to plot. if -1, plot all. Default = 4 (randomly chosen)
     :return:
     """
 
     print("Plot example SRH-2D results ...")
 
-    # number of examples to plot
-    nExamples = 4
-
     # get the number of bathymetries (= number of cases)
     nBathy = bathymetry_inversion_2D_config['bathymetry parameters']['nz']
 
     # randonly draw (nrows * ncolumns) cases from all SRH-2D cases
+    if nExamples == -1:
+        nExamples = nBathy
+
     choices = np.sort(np.random.choice(nBathy, size=nExamples, replace=False))
 
     #hack:
-    choices[0] = 1
+    #choices[0] = 1
 
     # get min and max of all result variables
     varialbes_min_max_file_name = bathymetry_inversion_2D_config['SRH-2D cases']['varialbes_min_max_file_name']
@@ -849,14 +909,18 @@ def plot_example_results(bathymetry_inversion_2D_config):
     with open(varialbes_min_max_file_name) as json_file:
         variables_min_max = json.load(json_file)
 
+    # go into the case's directory
+    os.chdir("cases")
+
+    # make "plots" directory if not existing yet
+    if not os.path.exists("../plots"):
+        os.mkdir("../plots")
+
     # loop over the chosen cases to gather results and plot
     for choice in choices:
         print("Plotting results for case: ", choice)
 
         example_results = {}   #an dictionary to hold results for the current case
-
-        # go into the case's directory
-        os.chdir("cases")
 
         result_fileName = "twoD_channel_" + str(choice)+".npz"
 
@@ -871,8 +935,8 @@ def plot_example_results(bathymetry_inversion_2D_config):
         # call the plot function
         plot_one_example_result(choice, example_results, variables_min_max)
 
-        # go back to the root
-        os.chdir("/")
+    # go back to the root
+    os.chdir("../")
 
 if __name__ == "__main__":
 
@@ -891,17 +955,22 @@ if __name__ == "__main__":
     #generate_all_SRH_2D_cases(bathymetry_inversion_2D_config)
 
     #run all SRH-2D cases
+    #start = time.time()
     #run_all_SRH_2D_cases(bathymetry_inversion_2D_config)
+    #end = time.time()
+    #print("Elapsed time for running SRH-2D cases: ", end - start)
 
     #convert (sample) all SRH-2D cases results to training data
     #sample_all_SRH_2D_cases(bathymetry_inversion_2D_config)
 
     #plot results and make visual check on some example SRH-2D cases
-    #plot_example_results(bathymetry_inversion_2D_config)
+    #plot_example_results(bathymetry_inversion_2D_config, nExamples=-1)
 
     #create and optionally check TFRecords
-    #createTFRecords(bathymetry_inversion_2D_config)
-    checkTFRecords('test.tfrecords', bathymetry_inversion_2D_config)
+    createTFRecords(bathymetry_inversion_2D_config)
+    #checkTFRecords('test.tfrecords', bathymetry_inversion_2D_config, nPlotSamples=-1)
+    #checkTFRecords('validation.tfrecords', bathymetry_inversion_2D_config, nPlotSamples=-1)
+    #checkTFRecords('train.tfrecords', bathymetry_inversion_2D_config, nPlotSamples=-1)
 
     #close the JSON config file
     f_json.close()

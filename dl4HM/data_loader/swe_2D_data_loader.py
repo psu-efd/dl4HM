@@ -17,6 +17,9 @@ class SWEs2DDataLoader(BaseDataLoader):
         #load data
         self.training_dataset, self.validation_dataset, self.test_dataset = self.load_data()
 
+        #iterator = iter(self.training_dataset)
+        #xxx = next(iterator)
+
         #calcualte how many batches in training, validation, and test
         self.train_batches = int(self.nTraining_data/self.config.trainer.batch_size)
         self.validation_batches = int(self.nValidation_data/self.config.trainer.batch_size)
@@ -42,7 +45,7 @@ class SWEs2DDataLoader(BaseDataLoader):
         self.nValidation_data = sum(1 for record in validation_data)
         self.nTest_data = sum(1 for record in test_data)
 
-        def parse_flow_data(serialized_example):
+        def parse_flow_data(serialized_example, bWithIBathy=False):
             features = {
                 'iBathy': tf.io.FixedLenFeature([], tf.int64),
                 'zb': tf.io.FixedLenFeature([], tf.string),
@@ -58,13 +61,17 @@ class SWEs2DDataLoader(BaseDataLoader):
             vel_WSE = parsed_features['vel_WSE']  # get byte string
             vel_WSE = tf.io.parse_tensor(vel_WSE, out_type=tf.float64)  # restore 2D array from byte string
 
-            #don't return the iBathy data (not needed for training; cause error)
-            return zb, vel_WSE
+            if not bWithIBathy: #don't return the iBathy data (not needed for training; cause error)
+                return zb, vel_WSE
+            else:
+                return zb, vel_WSE, iBathy
 
         # Transform binary data into image arrays
         training_data = training_data.map(parse_flow_data)
         validation_data = validation_data.map(parse_flow_data)
-        test_data = test_data.map(parse_flow_data)
+
+        #test data also include the iBathy ID
+        test_data = test_data.map(lambda x: parse_flow_data(x, bWithIBathy=True))
 
         training_dataset = training_data.shuffle(buffer_size=512)
         training_dataset = training_dataset.batch(self.config.trainer.batch_size, drop_remainder=True)

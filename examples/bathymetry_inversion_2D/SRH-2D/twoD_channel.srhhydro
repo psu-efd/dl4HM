@@ -4,7 +4,7 @@ Description "Block in channel"
 RunType FLOW
 ModelTemp OFF
 UnsteadyOutput UNSTEADY
-SimTime 0.0 1.0 2.0
+SimTime 0.0 0.2 1
 TurbulenceModel PARABOLIC
 ParabolicTurbulence 0.7
 InitCondOption DRY
@@ -18,5 +18,5 @@ ManningsN 1 0.03
 BC 1 INLET-Q
 BC 2 EXIT-H
 BC 3 WALL
-IQParams 1 20.0 SI CONVEYANCE
+IQParams 1 10.0 SI CONVEYANCE
 EWSParamsC 2 2.0 SI C

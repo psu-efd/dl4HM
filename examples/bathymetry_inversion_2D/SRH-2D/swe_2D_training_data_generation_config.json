@@ -5,16 +5,16 @@
   "bathymetry parameters": {
     "comment": "parameters for generating training data from SRH-2D",
     "amplitude": 0.5,
-    "nx": 101,
-    "ny": 21,
+    "nx": 256,
+    "ny": 64,
     "nz": 1000,
     "xstart": 0,
-    "xend": 100,
+    "xend": 25.6,
     "ystart": 0,
-    "yend": 20,
+    "yend": 6.4,
     "zstart": 0,
     "zend": 100,
-    "xfreq": 0.1,
+    "xfreq": 0.15,
     "yfreq": 0.2,
     "zfreq": 0.2,
     "xphase": 0,
@@ -25,15 +25,15 @@
   "SRH-2D cases": {
     "comment": "parameters for setting up the base case, including parameters for Gmsh.",
     "Gmsh": {
-      "resolution": 2.0,
+      "resolution": 0.5,
       "xmin": 0.0,
-      "xmax": 100.0,
+      "xmax": 25.6,
       "ymin": 0.0,
-      "ymax": 20.0
+      "ymax": 6.4
     },
 	"srhhydro_filename": "twoD_channel.srhhydro",
-	"sample_result_n_rows": 21,
-	"sample_result_n_cols": 101,
+	"sample_result_n_rows": 64,
+	"sample_result_n_cols": 256,
 	"varialbes_min_max_file_name": "varialbes_min_max.json"
   },
   "data generation":{
