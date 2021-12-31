@@ -506,10 +506,6 @@ def createTFRecords(bathymetry_inversion_2D_config):
     :return:
     """
 
-    FLAGS = tf.compat.v1.flags.FLAGS
-
-    tf.compat.v1.flags.DEFINE_bool('debug', False, """ this will show the images while generating records. """)
-
     # helper functions: to convert a value to a type compatible with tf.train.Example
     def _bytes_feature(value):
         """Returns a bytes_list from a string / byte."""
@@ -563,9 +559,25 @@ def createTFRecords(bathymetry_inversion_2D_config):
         raise Exception("The specified training, validation, and test fractions do not sum up to 1.0")
 
     # create tf writers
-    training_record_filename = 'train_uvonly.tfrecords'
-    validation_record_filename = 'validation_uvonly.tfrecords'
-    test_record_filename = 'test_uvonly.tfrecords'
+
+    # read the bool for whether to export (u, v) only or (u, v, WSE)
+    b_uv_only = bathymetry_inversion_2D_config['data generation']['uv_only']
+
+    if b_uv_only: # if only exporting (u,v)
+        training_record_filename = 'train_uv.tfrecords'
+        validation_record_filename = 'validation_uv.tfrecords'
+        test_record_filename = 'test_uv.tfrecords'
+
+        print("Creating TFRecords files with (u, v). And the records files are: ", training_record_filename,
+              validation_record_filename, test_record_filename)
+
+    else:         # if exporting (u, v, WSE)
+        training_record_filename = 'train_uvWSE.tfrecords'
+        validation_record_filename = 'validation_uvWSE.tfrecords'
+        test_record_filename = 'test_uvWSE.tfrecords'
+
+        print("Creating TFRecords files with (u, v, WSE). And the records files are: ", training_record_filename,
+              validation_record_filename, test_record_filename)
 
     training_writer = tf.io.TFRecordWriter(training_record_filename)
     validation_writer = tf.io.TFRecordWriter(validation_record_filename)
@@ -602,15 +614,17 @@ def createTFRecords(bathymetry_inversion_2D_config):
         vel_y = data['vel_y']
         WSE = data['WSE']
 
-        #normalize
+        #normalize to [-0.5, 0.5]
         zb_norm = (zb - zb_min)/(zb_max - zb_min) - 0.5
-        WSE_norm = (WSE - WSE_min) / (WSE_max - WSE_min) -0.5
+        WSE_norm = (WSE - WSE_min) / (WSE_max - WSE_min) - 0.5
 
-        vel_x_norm = (vel_x - vel_x_min) / (vel_x_max - vel_x_min) -0.5  #normalization is component-wise
-        vel_y_norm = (vel_y - vel_y_min) / (vel_y_max - vel_y_min) -0.5
+        vel_x_norm = (vel_x - vel_x_min) / (vel_x_max - vel_x_min) - 0.5  #normalization is component-wise
+        vel_y_norm = (vel_y - vel_y_min) / (vel_y_max - vel_y_min) - 0.5
 
-        #vel_WSE_norm = np.dstack([vel_x_norm, vel_y_norm, WSE_norm])  # stack x and y velocity to form 3D array
-        vel_WSE_norm = np.dstack([vel_x_norm, vel_y_norm,])  # stack x and y velocity to form 3D array
+        if b_uv_only:  # if only exporting (u,v)
+            vel_WSE_norm = np.dstack([vel_x_norm, vel_y_norm ])  # stack x and y velocity to form 3D array
+        else:
+            vel_WSE_norm = np.dstack([vel_x_norm, vel_y_norm, WSE_norm])  # stack x and y velocity to form 3D array
 
         #expand one more dimension to the zb array, e.g., shape=[21, 121] to shape=[21, 121, 1]
         zb_norm = zb_norm[:,:,np.newaxis]
@@ -673,11 +687,27 @@ def checkTFRecords(record_filename, bathymetry_inversion_2D_config, nPlotSamples
     # IDs in the recrod file
     IDs = []
 
+    # check whether vel_WSE contains WSE or it is (u,v) only
+    b_uv_only = True
+
     for record in dataset:
         ID, zb, vel_WSE = record
         IDs.append(ID.numpy())
 
+        if vel_WSE.numpy().shape[2] == 3: # This in fact only needs to be checked once
+            b_uv_only = False
+
+        # check whether the dimensions of the result data are compatible with the config file
+        if n_rows != vel_WSE.numpy().shape[0] or n_cols != vel_WSE.numpy().shape[1]:
+            raise Exception("The dimensions of the data in config file and TFRecords files are not compatible. "
+                            "In config file: n_rows, n_cols = ", n_rows, n_cols,
+                            "In TFRecords files: n_rows, n_cols = ", vel_WSE.numpy().shape[0], vel_WSE.numpy().shape[1])
+
     print("There are total of ", len(IDs), " records in the dataset. They are: ", IDs)
+
+    # if WSE data is not in, create a WSE with zero values
+    if b_uv_only:
+        WSE = np.zeros((n_rows, n_cols))
 
     # randonly draw cases
     nExamples = 0
@@ -699,65 +729,82 @@ def checkTFRecords(record_filename, bathymetry_inversion_2D_config, nPlotSamples
 
     counter = 0
 
+    min = -0.5
+    max = 0.5
+    levels = np.linspace(min, max, 51)
+    ticks = np.linspace(min, max, 7)
+
     # loop over all records
     for record in dataset:
         ID, zb, vel_WSE = record
 
+        # if the current case is in the chosen list for plotting
         if ID.numpy() in choices:
             counter = counter + 1
 
-            print("Plotting ID =", ID.numpy(), counter, "out of", len(IDs))
+            print("Plotting ID =", ID.numpy(), ",", counter, "out of", len(IDs))
+
+            # a list to contain all colorbars (to be cleared at the end)
+            clbs = []
 
             # plot zb
-            levels = np.linspace(0, 1, 51)
-            cf_zb = axs[0, 0].contourf(np.squeeze(zb[:, :, :]), levels, vmin=0, vmax=1, cmap=plt.cm.terrain)
-            # axs[0, 0].set_xlim([bounds[0], bounds[1]])
-            # axs[0, 0].set_ylim([bounds[2], bounds[3]])
+            cf_zb = axs[0, 0].contourf(np.squeeze(zb[:, :, :]), levels, vmin=min, vmax=max, cmap=plt.cm.terrain)
+            axs[0, 0].set_xlim([0, n_cols])
+            axs[0, 0].set_ylim([0, n_rows])
             axs[0, 0].set_aspect('equal')
             axs[0, 0].set_title("Bed elevation", fontsize=14)
-            clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(0, 1, 7), ax=axs[0, 0])
+            clb_zb = fig.colorbar(cf_zb, ticks=ticks, ax=axs[0, 0])
             clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
             clb_zb.ax.tick_params(labelsize=12)
-            # clb_zb.set_label('Elevation (m)', labelpad=0.3, fontsize=24)
+            clbs.append(clb_zb)
 
             # plot WSE
-            levels = np.linspace(0, 1, 51)
-            cf_vel_x = axs[0, 1].contourf(np.squeeze(vel_WSE[:, :, 2]), levels, vmin=0, vmax=1,
-                                          cmap=plt.cm.jet)
-            # axs[1, 0].set_xlim([bounds[0], bounds[1]])
-            # axs[1, 0].set_ylim([bounds[2], bounds[3]])
-            axs[0, 1].set_aspect('equal')
-            axs[0, 1].set_title("WSE", fontsize=14)
-            clb_WSE = fig.colorbar(cf_vel_x, ticks=np.linspace(0, 1, 7), ax=axs[0, 1])
-            clb_WSE.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-            clb_WSE.ax.tick_params(labelsize=12)
-            # clb_vel_x.set_label('Ux (m/s)', labelpad=0.3, fontsize=24)
+            if b_uv_only:    # if the TFRecords only have u and v, use zero WSE
+                cf_vel_x = axs[0, 1].contourf(WSE, levels, vmin=min, vmax=max,
+                                              cmap=plt.cm.jet)
+                axs[0, 1].set_xlim([0, n_cols])
+                axs[0, 1].set_ylim([0, n_rows])
+                axs[0, 1].set_aspect('equal')
+                axs[0, 1].set_title("WSE (zeros, not in dataset)", fontsize=14)
+                clb_WSE = fig.colorbar(cf_vel_x, ticks=ticks, ax=axs[0, 1])
+                clb_WSE.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
+                clb_WSE.ax.tick_params(labelsize=12)
+                clbs.append(clb_WSE)
+            else:
+                cf_vel_x = axs[0, 1].contourf(np.squeeze(vel_WSE[:, :, 2]), levels, vmin=min, vmax=max,
+                                              cmap=plt.cm.jet)
+                axs[0, 1].set_xlim([0, n_cols])
+                axs[0, 1].set_ylim([0, n_rows])
+                axs[0, 1].set_aspect('equal')
+                axs[0, 1].set_title("WSE", fontsize=14)
+                clb_WSE = fig.colorbar(cf_vel_x, ticks=ticks, ax=axs[0, 1])
+                clb_WSE.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
+                clb_WSE.ax.tick_params(labelsize=12)
+                clbs.append(clb_WSE)
 
             # plot vel_x
-            levels = np.linspace(0, 1, 51)
-            cf_vel_x = axs[1, 0].contourf(np.squeeze(vel_WSE[:, :, 0]), levels, vmin=0, vmax=1,
+            cf_vel_x = axs[1, 0].contourf(np.squeeze(vel_WSE[:, :, 0]), levels, vmin=min, vmax=max,
                                           cmap=plt.cm.jet)
-            # axs[1, 0].set_xlim([bounds[0], bounds[1]])
-            # axs[1, 0].set_ylim([bounds[2], bounds[3]])
+            axs[1, 0].set_xlim([0, n_cols])
+            axs[1, 0].set_ylim([0, n_rows])
             axs[1, 0].set_aspect('equal')
             axs[1, 0].set_title("x-velocity", fontsize=14)
-            clb_vel_x = fig.colorbar(cf_vel_x, ticks=np.linspace(0, 1, 7), ax=axs[1, 0])
+            clb_vel_x = fig.colorbar(cf_vel_x, ticks=ticks, ax=axs[1, 0])
             clb_vel_x.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
             clb_vel_x.ax.tick_params(labelsize=12)
-            # clb_vel_x.set_label('Ux (m/s)', labelpad=0.3, fontsize=24)
+            clbs.append(clb_vel_x)
 
             # plot vel_y
-            levels = np.linspace(0, 1, 51)
-            cf_vel_y = axs[1, 1].contourf(np.squeeze(vel_WSE[:, :, 1]), levels, vmin=0, vmax=1,
+            cf_vel_y = axs[1, 1].contourf(np.squeeze(vel_WSE[:, :, 1]), levels, vmin=min, vmax=max,
                                           cmap=plt.cm.jet)
-            # axs[1, 1].set_xlim([bounds[0], bounds[1]])
-            # axs[1, 1].set_ylim([bounds[2], bounds[3]])
+            axs[1, 1].set_xlim([0, n_cols])
+            axs[1, 1].set_ylim([0, n_rows])
             axs[1, 1].set_aspect('equal')
             axs[1, 1].set_title("y-velocity", fontsize=14)
-            clb_vel_y = fig.colorbar(cf_vel_y, ticks=np.linspace(0, 1, 7), ax=axs[1, 1])
+            clb_vel_y = fig.colorbar(cf_vel_y, ticks=ticks, ax=axs[1, 1])
             clb_vel_y.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
             clb_vel_y.ax.tick_params(labelsize=12)
-            # clb_vel_y.set_label('Uy (m/s)', labelpad=0.3, fontsize=24)
+            clbs.append(clb_vel_y)
 
             # set labels
             plt.setp(axs[-1, :], xlabel='x')
@@ -767,14 +814,14 @@ def checkTFRecords(record_filename, bathymetry_inversion_2D_config, nPlotSamples
 
             #plt.show()
 
+            # clear all subplots
             for axs_1 in axs:
                 for axs_2 in axs_1:
                     axs_2.clear()
 
-            clb_zb.remove()
-            clb_WSE.remove()
-            clb_vel_x.remove()
-            clb_vel_y.remove()
+            # remove all created colorbars
+            for clb in clbs:
+                clb.remove()
 
     plt.close(fig)
 
@@ -938,6 +985,103 @@ def plot_example_results(bathymetry_inversion_2D_config, nExamples=4):
     # go back to the root
     os.chdir("../")
 
+def generate_inversion_data(record_filename, bathymetry_inversion_2D_config, nInversionCases=1):
+    """
+    Genearte inversion data from TFRecord file
+
+    :param bathymetry_inversion_2D_config:
+    :param nInversionCases: int
+        number of inversion cases to generate. If -1, general all in the records. Default = 1
+    :return:
+    """
+
+    # Set up our dataset
+    dataset = tf.data.TFRecordDataset(record_filename)
+
+    # get the number of bathymetries (= number of cases)
+    nBathy = bathymetry_inversion_2D_config['bathymetry parameters']['nz']
+
+    # get number of rows (in y-direction)
+    n_rows = bathymetry_inversion_2D_config['SRH-2D cases']['sample_result_n_rows']
+    # get number of colmuns (in x-direction)
+    n_cols = bathymetry_inversion_2D_config['SRH-2D cases']['sample_result_n_cols']
+
+    def parse_flow_data(serialized_example):
+        features = {
+            'iBathy': tf.io.FixedLenFeature([], tf.int64),
+            'zb': tf.io.FixedLenFeature([], tf.string),
+            'vel_WSE': tf.io.FixedLenFeature([], tf.string)
+        }
+        parsed_features = tf.io.parse_single_example(serialized_example, features)
+
+        iBathy = parsed_features['iBathy']
+
+        zb = parsed_features['zb']  # get byte string
+        zb = tf.io.parse_tensor(zb, out_type=tf.float64)  # restore 2D array from byte string
+
+        vel_WSE = parsed_features['vel_WSE']  # get byte string
+        vel_WSE = tf.io.parse_tensor(vel_WSE, out_type=tf.float64)  # restore 2D array from byte string
+
+        return iBathy, zb, vel_WSE
+
+    # Transform binary data into image arrays
+    dataset = dataset.map(parse_flow_data)
+
+    # IDs in the recrod file
+    IDs = []
+
+    # check whether vel_WSE contains WSE or it is (u,v) only
+    b_uv_only = True
+
+    for record in dataset:
+        ID, zb, vel_WSE = record
+        IDs.append(ID.numpy())
+
+        if vel_WSE.numpy().shape[2] == 3: # This in fact only needs to be checked once
+            b_uv_only = False
+
+        # check whether the dimensions of the result data are compatible with the config file
+        if n_rows != vel_WSE.numpy().shape[0] or n_cols != vel_WSE.numpy().shape[1]:
+            raise Exception("The dimensions of the data in config file and TFRecords files are not compatible. "
+                            "In config file: n_rows, n_cols = ", n_rows, n_cols,
+                            "In TFRecords files: n_rows, n_cols = ", vel_WSE.numpy().shape[0], vel_WSE.numpy().shape[1])
+
+    print("There are total of ", len(IDs), " records in the dataset. They are: ", IDs)
+
+    # randonly draw cases
+    nExamples = 0
+    if nInversionCases == -1:
+        nExamples = len(IDs)
+    else:
+        if nInversionCases <= len(IDs):
+            nExamples = nInversionCases
+        else:
+            raise Exception("The specified number of cases nInversionCases, ", nInversionCases, " is larger than the number of records.")
+
+    choices = np.sort(np.random.choice(IDs, size=nExamples, replace=False))
+
+    print("Chosen case IDs for generating inversion cases: ", choices)
+
+    counter = 0
+
+    # loop over all records
+    for record in dataset:
+        ID, zb, vel_WSE = record
+
+        # if the current case is in the chosen list for creating inversion case
+        if ID.numpy() in choices:
+            counter = counter + 1
+
+            zb = zb.numpy()
+            uvWSE=vel_WSE.numpy()
+
+            print("Generating inversion case ID =", ID.numpy(), ",", counter, "out of", len(IDs))
+
+            if b_uv_only:
+                np.savez("./inversion_case_uv_" + str(ID.numpy()).zfill(4) + ".npz", zb=zb, uvWSE=uvWSE)
+            else:
+                np.savez("./inversion_case_uvWSE_" + str(ID.numpy()).zfill(4) + ".npz", zb=zb, uvWSE=uvWSE)
+
 if __name__ == "__main__":
 
     #The following shows the whole process of:
@@ -964,13 +1108,18 @@ if __name__ == "__main__":
     #sample_all_SRH_2D_cases(bathymetry_inversion_2D_config)
 
     #plot results and make visual check on some example SRH-2D cases
-    #plot_example_results(bathymetry_inversion_2D_config, nExamples=-1)
+    #plot_example_results(bathymetry_inversion_2D_config, nExamples=4)
 
     #create and optionally check TFRecords
-    createTFRecords(bathymetry_inversion_2D_config)
-    #checkTFRecords('test.tfrecords', bathymetry_inversion_2D_config, nPlotSamples=-1)
+    #createTFRecords(bathymetry_inversion_2D_config)
+    #checkTFRecords('test_uv.tfrecords', bathymetry_inversion_2D_config, nPlotSamples=2)
+    #checkTFRecords('test_uvWSE.tfrecords', bathymetry_inversion_2D_config, nPlotSamples=2)
     #checkTFRecords('validation.tfrecords', bathymetry_inversion_2D_config, nPlotSamples=-1)
     #checkTFRecords('train.tfrecords', bathymetry_inversion_2D_config, nPlotSamples=-1)
+
+    #generate some inversion data
+    #generate_inversion_data('test_uv.tfrecords', bathymetry_inversion_2D_config, nInversionCases=1)
+    generate_inversion_data('test_uvWSE.tfrecords', bathymetry_inversion_2D_config, nInversionCases=1)
 
     #close the JSON config file
     f_json.close()

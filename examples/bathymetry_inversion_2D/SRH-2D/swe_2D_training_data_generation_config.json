@@ -32,14 +32,15 @@
       "ymax": 6.4
     },
 	"srhhydro_filename": "twoD_channel.srhhydro",
-	"sample_result_n_rows": 64,
-	"sample_result_n_cols": 256,
+	"sample_result_n_rows": 8,
+	"sample_result_n_cols": 32,
 	"varialbes_min_max_file_name": "varialbes_min_max.json"
   },
   "data generation":{
     "comment": "parameters for data generation, e.g., the fraction for training, validation, and test.",
 	"training_fraction": 0.7,
 	"validation_fraction": 0.2,
-	"test_fraction": 0.1
+	"test_fraction": 0.1,
+	"uv_only": false
   }
 }

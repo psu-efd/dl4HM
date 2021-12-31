@@ -1,5 +1,6 @@
 from ..base.base_modelWrapper import BaseModelWrapper
 from tensorflow.keras import Sequential
+from tensorflow.keras.losses import MeanSquaredError
 from tensorflow.keras.layers import Dense
 from tensorflow.keras import layers
 from tensorflow.keras.utils import plot_model
@@ -7,21 +8,23 @@ from tensorflow.keras.utils import plot_model
 from tensorflow.keras import backend as kb
 import tensorflow as tf
 
-import  sys
+import json
 
 
 class SWEs2DModel(BaseModelWrapper):
     """A NN model for 2D Shallow Water Equations solver's surrogate
 
+    The construction of the NN model can be by calling "build_model()" to use the default NN architecture, or
+    by loading the NN architecture from a JSON file (which can be pre-generated).
+
     Model input variables: bed bathymetry zb
     Model output variables: u, v, WSE
+
 
     """
 
     def __init__(self, config, dataLoader):
         super(SWEs2DModel, self).__init__(config, dataLoader)
-
-        self.build_model()
 
         #loss components (record each iteration, i.e., each batch). Total numbers = number of epoch X number of batches
         self.loss_value = []         #loss due to value error
@@ -29,8 +32,26 @@ class SWEs2DModel(BaseModelWrapper):
         # loss components (record each epoch); will be set by a callback function in trainer
         self.loss_value_epoch = []         #loss due to value error
 
-    def build_model(self):
         self.model = None
+
+        # create the model: either build from scratch or load from a JSON file.
+        if self.config.model.load_model_structure_from_json:  # load the model architecture from a JSON file
+            print("\tLoading NN architecture from JSON file: ",
+                  self.config.model.model_structure_json_filename)
+
+            with open(self.config.model.model_structure_json_filename, 'r') as json_file:
+                model_config = json.load(json_file)
+
+            self.model = tf.keras.models.model_from_json(model_config)
+
+        else:    # build the model from scratch
+            print("\tBuilding NN architecture from scratch ...")
+            self.build_model()
+
+        # compile the model
+        self.compile_model()
+
+    def build_model(self):
 
         #build the model based on the configuration file
         if self.config.model.model_type == "fully_connected_MLP":
@@ -40,6 +61,15 @@ class SWEs2DModel(BaseModelWrapper):
         else:
             raise Exception("Specified NN model type not supported.")
 
+
+
+    def compile_model(self):
+        """
+        Compile the model
+
+        :return:
+        """
+
         # summarize the model
         self.model.summary()
         # plot_model(self.model, 'model.png', show_shapes=True)
@@ -47,6 +77,7 @@ class SWEs2DModel(BaseModelWrapper):
         self.model.compile(
             loss=self.SWEs2DLossFunction(),
             optimizer=self.config.model.optimizer,
+            #metrics=["acc"],
             run_eagerly=True,
         )
 
@@ -76,7 +107,7 @@ class SWEs2DModel(BaseModelWrapper):
             return output
 
         # Define Inputs and Outputs
-        input = tf.keras.Input(shape=tuple(self.dataLoader.input_data_shape))  #use self.dataLoader.get_input_data_shape()
+        input = tf.keras.Input(shape=tuple(self.dataLoader.get_input_data_shape()))
         output = fully_connected(input)
 
         # Use Keras Functional API to Create our Model
@@ -103,8 +134,6 @@ class SWEs2DModel(BaseModelWrapper):
             # Set the number of filters and kernel size for the second convolutional layer
             x = layers.Conv2D(512, (4, 4), strides=(4, 4), padding='same', name='conv2', activation='relu')(x)
 
-            #x = layers.Conv2D(512, (2, 2), strides=(2, 2), padding='same', name='conv3', activation='relu')(x)
-
             x = layers.Flatten()(x)
 
             ### Add a denslayer with ReLU activation
@@ -128,6 +157,8 @@ class SWEs2DModel(BaseModelWrapper):
             x = layers.Conv2DTranspose(256, (8, 2), strides=(8, 2), activation='relu', name="deconv2_" + suffix)(x)
             x = layers.Conv2DTranspose(32, (2, 2), strides=(2, 2), activation='relu', name="deconv3_" + suffix)(x)
 
+            # For the last layer, the activation function should match with the output value range. For example, we
+            # can't use "relu" if the output range covers the negative side, e.g., [-0.5, 0.5]
             x = layers.Conv2DTranspose(1, (2, 2), strides=(2, 2), activation='linear', name="deconv4_" + suffix)(x)
             x = layers.Permute((2, 1, 3), name="permute_" + suffix)(x)
 
@@ -138,28 +169,33 @@ class SWEs2DModel(BaseModelWrapper):
 
             x = conv(input)
 
-            # Add decoder for vx
-            vx = deconv(x, "vx")
+            # Add decoder for u
+            u = deconv(x, "u")
 
-            # Add decoder for vy
-            vy = deconv(x, "vy")
+            # Add decoder for v
+            v = deconv(x, "v")
 
-            # Add decoder for WSE
-            #WSE = deconv(x, "WSE")
+            # Initialize NN output
+            output_NN = None
 
-            #output = layers.concatenate([vx, vy, WSE], axis=3)
-            output = layers.concatenate([vx, vy], axis=3)
+            if self.config.dataLoader.uv_only:  # The NN output only includes u and v
+                output_NN = layers.concatenate([u, v], axis=3)
+            else:                          # The NN output includes u, v, and WSE
+                # Add decoder for WSE
+                WSE = deconv(x, "WSE")
+                output_NN = layers.concatenate([u, v, WSE], axis=3)
 
-            return output
+            return output_NN
 
-        input = tf.keras.Input(shape=tuple(self.dataLoader.input_data_shape), name="bathymetry")
+        #The shape of the input is specified in the config file: model->input_shape
+        input = tf.keras.Input(shape=tuple(self.config.model.input_shape), name="bathymetry")
         output = conv_deconv(input)
         conv_model = tf.keras.Model(inputs=input, outputs=output)
 
         return conv_model
 
     def SWEs2DLossFunction(self):
-        """Customized loss function for backwater curve
+        """Customized loss function for SWEs2D
 
 
         :return:
@@ -181,16 +217,16 @@ class SWEs2DModel(BaseModelWrapper):
             #tf.print("\t shape of y_true: ", tf.shape(y_true), output_stream=sys.stdout)
             #tf.print("\t shape of y_pred: ", tf.shape(y_pred), output_stream=sys.stdout)
 
-            # using u, v, and WSE
-            #loss = tf.nn.l2_loss(y_true - y_pred)
-
-            # using only u and v
-            #loss = tf.nn.l2_loss(y_true[:,:,:,0:2] - y_pred[:,:,:,0:2])
-            #loss = tf.nn.l2_loss(y_true - y_pred)
-            loss = tf.reduce_mean((y_true - y_pred) * (y_true - y_pred))
+            if self.config.model.loss_type == "mse":  #mean squared error
+                squared_difference = tf.square(y_true - y_pred)
+                loss = tf.reduce_mean(squared_difference)
+            elif self.config.model.loss_type == "L2": # L2
+                loss = tf.nn.l2_loss(y_true - y_pred)
+            else:
+                raise Exception("The specified loss_type is not supported.")
 
             # Add a scalar to tensorboard
-            tf.summary.scalar('loss', loss)
+            #tf.summary.scalar('loss', loss)
 
             self.loss_value.append(loss)
 
@@ -207,9 +243,9 @@ class SWEs2DModel(BaseModelWrapper):
         """
 
         if self.model is None:
-            raise Exception("You have to build the model first.")
+            raise Exception("You have to build or load the model first.")
 
-        score = self.model.evaluate(test_data[0], test_data[1], verbose=0)
+        score = self.model.evaluate(test_data, verbose=0)
 
         print("Test loss:", score[0])
         print("Test accuracy:", score[1])
@@ -223,6 +259,6 @@ class SWEs2DModel(BaseModelWrapper):
         """
 
         if self.model is None:
-            raise Exception("You have to build and train the model first.")
+            raise Exception("You have to build or load the model first.")
 
         return self.model.predict(input_data)

@@ -10,68 +10,74 @@ class SWEs2DDataLoader(BaseDataLoader):
         super(SWEs2DDataLoader, self).__init__(config)
 
         #the total number of records in training, validation, and test data sets
-        self.nTraining_data = 0
-        self.nValidation_data = 0
-        self.nTest_data = 0
+        self.nTraining_data = -1
+        self.nValidation_data = -1
+        self.nTest_data = -1
 
-        #load data
-        self.training_dataset, self.validation_dataset, self.test_dataset = self.load_data()
-
-        #iterator = iter(self.training_dataset)
-        #xxx = next(iterator)
+        self.training_dataset = None
+        self.validation_dataset = None
+        self.test_dataset = None
 
         #calcualte how many batches in training, validation, and test
-        self.train_batches = int(self.nTraining_data/self.config.trainer.batch_size)
-        self.validation_batches = int(self.nValidation_data/self.config.trainer.batch_size)
-        self.test_batches = int(self.nTest_data/self.config.trainer.batch_size)
+        self.nTraining_batches = -1
+        self.nValidation_batches = -1
+        self.nTest_batches = -1
 
         #sizes of input and output
         #input: zb_bed
         #output: (u, v, WSE)
-        self.input_data_shape, self.output_data_shape = self.calculate_input_output_shape()
+        self.input_data_shape = None
+        self.output_data_shape = None
 
-    def load_data(self):
-        """Load training and test data
+        #inversion data (uvWSE): given this uvWSE, invert to get zb
+        self.uvWSE_inversion = None
+        #truth zb for inversion comparison
+        self.zb_truth = None
+
+    def parse_flow_data(self, serialized_example, bWithIBathy=False):
+        features = {
+            'iBathy': tf.io.FixedLenFeature([], tf.int64),
+            'zb': tf.io.FixedLenFeature([], tf.string),
+            'vel_WSE': tf.io.FixedLenFeature([], tf.string)
+        }
+        parsed_features = tf.io.parse_single_example(serialized_example, features)
+
+        iBathy = parsed_features['iBathy']
+
+        zb = parsed_features['zb']  # get byte string
+        zb = tf.io.parse_tensor(zb, out_type=tf.float64)  # restore 2D array from byte string
+
+        vel_WSE = parsed_features['vel_WSE']  # get byte string
+        vel_WSE = tf.io.parse_tensor(vel_WSE, out_type=tf.float64)  # restore 2D array from byte string
+
+        if not bWithIBathy:  # don't return the iBathy data (not needed for training; cause error)
+            return zb, vel_WSE
+        else:
+            return iBathy, zb, vel_WSE
+
+
+    def load_training_validation_data(self):
+        """Load training and validation data
 
         :return:
         """
 
+        print("SWE2DDataLoader loading training and validation data ...")
+
         training_data = tf.data.TFRecordDataset(self.config.dataLoader.training_data)
         validation_data = tf.data.TFRecordDataset(self.config.dataLoader.validation_data)
-        test_data = tf.data.TFRecordDataset(self.config.dataLoader.test_data)
 
         #count the number records for each data set
         self.nTraining_data = sum(1 for record in training_data)
         self.nValidation_data = sum(1 for record in validation_data)
-        self.nTest_data = sum(1 for record in test_data)
 
-        def parse_flow_data(serialized_example, bWithIBathy=False):
-            features = {
-                'iBathy': tf.io.FixedLenFeature([], tf.int64),
-                'zb': tf.io.FixedLenFeature([], tf.string),
-                'vel_WSE': tf.io.FixedLenFeature([], tf.string)
-            }
-            parsed_features = tf.io.parse_single_example(serialized_example, features)
-
-            iBathy = parsed_features['iBathy']
-
-            zb = parsed_features['zb']  # get byte string
-            zb = tf.io.parse_tensor(zb, out_type=tf.float64)  # restore 2D array from byte string
-
-            vel_WSE = parsed_features['vel_WSE']  # get byte string
-            vel_WSE = tf.io.parse_tensor(vel_WSE, out_type=tf.float64)  # restore 2D array from byte string
-
-            if not bWithIBathy: #don't return the iBathy data (not needed for training; cause error)
-                return zb, vel_WSE
-            else:
-                return zb, vel_WSE, iBathy
+        # calcualte how many batches in training, validation, and test
+        self.nTraining_batches = int(self.nTraining_data / self.config.trainer.batch_size)
+        self.nValidation_batches = int(self.nValidation_data / self.config.trainer.batch_size)
 
         # Transform binary data into image arrays
-        training_data = training_data.map(parse_flow_data)
-        validation_data = validation_data.map(parse_flow_data)
-
-        #test data also include the iBathy ID
-        test_data = test_data.map(lambda x: parse_flow_data(x, bWithIBathy=True))
+        training_data = training_data.map(self.parse_flow_data)
+        validation_data = validation_data.map(self.parse_flow_data)
 
         training_dataset = training_data.shuffle(buffer_size=512)
         training_dataset = training_dataset.batch(self.config.trainer.batch_size, drop_remainder=True)
@@ -81,11 +87,30 @@ class SWEs2DDataLoader(BaseDataLoader):
         validation_dataset = validation_dataset.batch(self.config.trainer.batch_size, drop_remainder=True)
         validation_dataset = validation_dataset.repeat()
 
-        test_dataset = test_data.batch(self.config.trainer.batch_size, drop_remainder=True)
-        test_dataset = test_dataset.repeat()
+        self.training_dataset = training_dataset
+        self.validation_dataset = validation_dataset
 
-        return training_dataset, validation_dataset, test_dataset
+    def load_test_data(self):
+        """Load test data
 
+        :return:
+        """
+
+        print("SWE2DDataLoader loading test data ...")
+
+        test_data = tf.data.TFRecordDataset(self.config.dataLoader.test_data)
+
+        # count the number records for each data set
+        self.nTest_data = sum(1 for record in test_data)
+
+        # calcualte how many batches in test
+        self.nTest_batches = int(self.nTest_data / self.config.trainer.batch_size)
+
+        # Transform binary data into image arrays
+        # test data also include the iBathy ID
+        test_data = test_data.map(lambda x: self.parse_flow_data(x, bWithIBathy=True))
+
+        self.test_dataset = test_data
 
     def calculate_input_output_shape(self):
         """
@@ -94,18 +119,22 @@ class SWEs2DDataLoader(BaseDataLoader):
         :return:
         """
 
+        if self.training_dataset == None:
+            self.load_training_validation_data()
+
         # Create an iterator for reading a batch of input and output test data
         iterator = iter(self.training_dataset)
         zb, vel_WSE = next(iterator)
 
-        #zb is of the shape for example [32, 21, 101, 1]. We don't need the first element, which
+        #zb is of the shape for example [32, 64, 256, 1]. We don't need the first element, which
         #is the batch size.
         input_shape = zb.shape.as_list()
         input_shape.pop(0)
         output_shape = vel_WSE.shape.as_list()
         output_shape.pop(0)
 
-        return input_shape, output_shape
+        self.input_data_shape = input_shape
+        self.output_data_shape = output_shape
 
     def load_inversion_data(self):
         """Load inversion (if specified in the config file)
@@ -113,23 +142,84 @@ class SWEs2DDataLoader(BaseDataLoader):
         :return:
         """
 
-        if self.config.inverter.do_inversion:
-            self.WSE_inversion = np.load(self.config.inverter.inversion_data)['WSE']
-            self.zb_beds_truth = np.load(self.config.inverter.inversion_data)['zb_beds']
-        else:
-            self.WSE_inversion = None
+        self.uvWSE_inversion = np.load(self.config.inverter.inversion_data_files)['uvWSE']
+        self.zb_truth = np.load(self.config.inverter.inversion_data_files)['zb']
 
-    def get_train_data(self):
+
+    def get_training_data(self):
+        if self.training_dataset == None:
+            self.load_training_validation_data()
+
         return self.training_dataset
 
     def get_validation_data(self):
+        if self.validation_dataset == None:
+            self.load_training_validation_data()
+
         return self.validation_dataset
 
     def get_test_data(self):
+        if self.test_dataset == None:
+            self.load_test_data()
+
         return self.test_dataset
 
-    def get_WSE_inversion(self):
-        return self.WSE_inversion
+    def get_nTraining_data(self):
+        if self.nTraining_data == -1:
+            self.load_training_validation_data()
 
-    def get_zb_beds_truth(self):
-        return self.zb_beds_truth
+        return self.nTraining_data
+
+    def get_nValidation_data(self):
+        if self.nValidation_data == -1:
+            self.load_training_validation_data()
+
+        return self.nValidation_data
+
+    def get_nTest_data(self):
+        if self.nTest_data == -1:
+            self.load_test_data()
+
+        return self.nTest_data
+
+    def get_nTraining_batches(self):
+        if self.nTraining_batches == -1:
+            self.load_training_validation_data()
+
+        return self.nTraining_batches
+
+    def get_nValidation_batches(self):
+        if self.nValidation_batches == -1:
+            self.load_training_validation_data()
+
+        return self.nValidation_batches
+
+    def get_nTest_batches(self):
+        if self.nTest_batches == -1:
+            self.load_training_validation_data()
+
+        return self.nTest_batches
+
+    def get_input_data_shape(self):
+        if self.input_data_shape == None:
+            self.calculate_input_output_shape()
+
+        return self.input_data_shape
+
+    def get_output_data_shape(self):
+        if self.output_data_shape == None:
+            self.calculate_input_output_shape()
+
+        return self.output_data_shape
+
+    def get_uvWSE_inversion(self):
+        if self.uvWSE_inversion is None:
+            self.load_inversion_data()
+
+        return self.uvWSE_inversion
+
+    def get_zb_truth(self):
+        if self.zb_truth is None:
+            self.load_inversion_data()
+
+        return self.zb_truth

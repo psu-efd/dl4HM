@@ -2,6 +2,9 @@ from ..base.base_trainer import BaseTrainer
 import os
 from keras.callbacks import ModelCheckpoint, TensorBoard
 import tensorflow as tf
+import json
+
+from ..utils.misc import NumpyFloatValuesEncoder
 
 # Implement callback function to record loss components
 class myCallback(tf.keras.callbacks.Callback):
@@ -26,10 +29,8 @@ class SWEs2DModelTrainer(BaseTrainer):
     def __init__(self, modelWrapper, dataLoader, config):
         super(SWEs2DModelTrainer, self).__init__(modelWrapper, dataLoader, config)
 
-        self.training_data = dataLoader.get_train_data()
-        self.validation_data = dataLoader.get_validation_data()
-
         self.callbacks = []
+        self.history = None
         self.loss = []
         self.acc = []
         self.val_loss = []
@@ -42,6 +43,17 @@ class SWEs2DModelTrainer(BaseTrainer):
         #    tf.keras.callbacks.EarlyStopping(monitor='loss', mode='min',
         #                                     patience=10, restore_best_weights=True)
         #)
+
+        # add adaptive learning rate schedule callback
+        self.callbacks.append(
+            tf.keras.callbacks.ReduceLROnPlateau(
+                monitor=self.config.callbacks.ReduceLROnPlateau_monitor,
+                factor=self.config.callbacks.ReduceLROnPlateau_factor,
+                patience=self.config.callbacks.ReduceLROnPlateau_patience,
+                min_lr=self.config.callbacks.ReduceLROnPlateau_min_lr,
+                verbose=1
+            )
+        )
 
         # add model check point callback
         self.callbacks.append(
@@ -68,24 +80,40 @@ class SWEs2DModelTrainer(BaseTrainer):
         self.callbacks.append(myCallback(self))
 
     def train(self):
-        history = self.modelWrapper.model.fit(
-            self.training_data,
+        if self.modelWrapper.model is None:
+            raise Exception("The model does not exist yet. "
+                            "You have to call modelWrapper's build_model() or load().")
+
+        #First we check whether the input_shape in the config file is the same as the shape of the training data
+        if self.config.model.input_shape[0] != self.dataLoader.get_input_data_shape()[0] or \
+            self.config.model.input_shape[1] != self.dataLoader.get_input_data_shape()[1]:
+            raise Exception("The input_shape in the config file does not match with the shape of training data. "
+                            "input_shape = ", self.config.model.input_shape,
+                            "training data shape = ", self.dataLoader.get_input_data_shape())
+
+        self.history = self.modelWrapper.model.fit(
+            self.dataLoader.get_training_data(),
             epochs=self.config.trainer.num_epochs,
-            steps_per_epoch = self.dataLoader.train_batches,
-            validation_data=self.validation_data,
-            validation_steps=self.dataLoader.validation_batches,
+            steps_per_epoch = self.dataLoader.get_nTraining_batches(),
+            validation_data=self.dataLoader.get_validation_data(),
+            validation_steps=self.dataLoader.get_nValidation_batches(),
             verbose=self.config.trainer.verbose_training,
             callbacks=self.callbacks
         )
 
-        if 'loss' in history.history:
-            self.loss.extend(history.history['loss'])
+        if 'loss' in self.history.history:
+            self.loss.extend(self.history.history['loss'])
 
-        if 'acc' in history.history:
-            self.acc.extend(history.history['acc'])
+        if 'acc' in self.history.history:
+            self.acc.extend(self.history.history['acc'])
 
-        if 'val_loss' in history.history:
-            self.val_loss.extend(history.history['val_loss'])
+        if 'val_loss' in self.history.history:
+            self.val_loss.extend(self.history.history['val_loss'])
 
-        if 'val_acc' in history.history:
-            self.val_acc.extend(history.history['val_acc'])
+        if 'val_acc' in self.history.history:
+            self.val_acc.extend(self.history.history['val_acc'])
+
+        #save the training history to a JSON file for later use
+        #print(self.history.history)
+        with open(self.config.trainer.history_save_filename, "w") as history_file:
+            json.dump(self.history.history, history_file, indent=4, cls=NumpyFloatValuesEncoder)
