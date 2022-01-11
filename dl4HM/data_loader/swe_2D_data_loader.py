@@ -34,6 +34,9 @@ class SWEs2DDataLoader(BaseDataLoader):
         #truth zb for inversion comparison
         self.zb_truth = None
 
+        #min and max of variables for training (for scaling purpuse)
+        self.variables_min_max = None
+
     def parse_flow_data(self, serialized_example, bWithIBathy=False):
         features = {
             'iBathy': tf.io.FixedLenFeature([], tf.int64),
@@ -145,6 +148,26 @@ class SWEs2DDataLoader(BaseDataLoader):
         self.uvWSE_inversion = np.load(self.config.inverter.inversion_data_files)['uvWSE']
         self.zb_truth = np.load(self.config.inverter.inversion_data_files)['zb']
 
+    def load_variables_min_max(self):
+        """
+        Load min and max for variables (for scaling purpose)
+
+        :return:
+        """
+
+        # load the JSON file
+        with open(self.config.dataLoader.minMaxVars_file) as json_file:
+            self.variables_min_max = json.load(json_file)
+
+        #check
+        bounds = self.variables_min_max['bounds']
+        print("bounds = ", bounds)
+
+    def get_variables_min_max(self):
+        if self.variables_min_max is None:
+            self.load_variables_min_max()
+
+        return self.variables_min_max
 
     def get_training_data(self):
         if self.training_dataset == None:

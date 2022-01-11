@@ -106,8 +106,14 @@ def plot_sample_bathymetries(nrows, ncolumns, bathymetry_inversion_2D_config):
     choices = np.sort(np.random.choice(nBathy, size=nrows*ncolumns, replace=False))
 
     #force the first choice to be 0
-    choices[0] = 0
-    choices[-1] = nBathy-1
+    #choices[0] = 0
+    #choices[-1] = nBathy-1
+
+    #hack: put the ID of the bathymetry you want to plot here
+    choices[0] = 145
+    choices[1] = 245
+    choices[2] = 345
+    choices[3] = 445
 
     #amplitude of the bathymetry elevation
     amplitude = bathymetry_inversion_2D_config['amplitude']
@@ -118,24 +124,41 @@ def plot_sample_bathymetries(nrows, ncolumns, bathymetry_inversion_2D_config):
     zMin = -amplitude
     levels = np.linspace(zMin, zMax, 51)
 
-    fig, axs = plt.subplots(nrows, ncolumns, figsize=(ncolumns*10, nrows*2),
+    fig, axs = plt.subplots(nrows, ncolumns, figsize=(ncolumns*8, nrows*2),
                             sharex=True, sharey=True, facecolor='w', edgecolor='k')
-    fig.subplots_adjust(hspace=.3, wspace=.05)
+    fig.subplots_adjust(hspace=.2, wspace=.05)
 
-    for ax, choice in zip(axs.ravel(), choices):
+    for i, ax, choice in zip(range(nrows*ncolumns), axs.ravel(), choices):
         cf = ax.contourf(xArray, yArray, elevation[:,:,choice].T, levels, vmin=zMin,
-                         vmax=zMax, cmap=plt.cm.terrain)
+                         vmax=zMax, cmap=plt.cm.terrain, extend='both')
         ax.set_xlim([np.min(xArray), np.max(xArray)])
         ax.set_ylim([np.min(yArray), np.max(yArray)])
         ax.set_aspect('equal')
-        ax.set_title("Sample " + str(choice))
+        ax.set_title("Sample " + str(i))
+
 
     clb = fig.colorbar(cf, ticks=np.linspace(zMin, zMax, 11), ax=axs.ravel().tolist())
     clb.set_label('Elevation (m)', labelpad=0.3, fontsize=24)
 
     # set labels
-    plt.setp(axs[-1, :], xlabel='x (m)')
-    plt.setp(axs[:, 0], ylabel='y (m)')
+    #plt.setp(axs[-1, :], xlabel='x (m)')
+    #plt.setp(axs[:, 0], ylabel='y (m)')
+
+    #hack for 2x2 plot (for publication)
+    axs[0, 0].set_ylabel('$y$ (m)', fontsize=16)
+    axs[0, 0].tick_params(axis='y', labelsize=14)
+
+    axs[1, 0].set_xlabel('$x$ (m)', fontsize=16)
+    axs[1, 0].tick_params(axis='x', labelsize=14)
+    axs[1, 0].set_ylabel('$y$ (m)', fontsize=16)
+    axs[1, 0].tick_params(axis='y', labelsize=14)
+
+    axs[1, 1].set_xlabel('$x$ (m)', fontsize=16)
+    axs[1, 1].tick_params(axis='x', labelsize=14)
+
+    #plot the lines for profiles (one longitudinal and the other cross section)
+    axs[0, 0].plot([0,26],[3.2,3.2], 'k--')
+    axs[0, 0].plot([12.8, 12.8], [0, 6.4], 'k--')
 
     plt.savefig("sample_bathymetries.png", dpi=300, bbox_inches='tight', pad_inches=0)
 
@@ -207,6 +230,46 @@ def animate_bathymetry_contours(bathymetry_inversion_2D_config):
     #plt.show()
 
 
+def sample_bathymetries_as_inversion_init(nSamples, bathymetry_inversion_2D_config):
+    """
+    Sample some randomly selected bathymetries as initial zb for inversion
+
+    :param nSamples:
+    :return:
+    """
+
+    # output file name for the generated bathymetry data
+    bathymetry_data_file_name = bathymetry_inversion_2D_config['bathymetry_data_file_name']
+
+    #load the bathymetry data from file
+    bathymetry_data = np.load(bathymetry_data_file_name)
+
+    xArray = bathymetry_data['xArray']
+    yArray = bathymetry_data['yArray']
+    elevation = bathymetry_data['elevation']
+
+    #total number of bathymetry in the data
+    nBathy = elevation.shape[2]
+
+    #randonly draw nSamples bathymetries from the data
+    #choices = np.sort(np.random.choice(nBathy, size=nSamples, replace=False))
+    #evenly draw nSamples bathymetries from the data
+    choices = np.linspace(0,nBathy-1,nSamples).astype(int)
+
+    print("Chosen samples: ", choices)
+
+    #force the first choice to be 0
+    #choices[0] = 0
+    #choices[-1] = nBathy-1
+
+    #depending on the resolution of the training input, we need to do some downsampling if necessary
+    selected_elevations = elevation[:,:,choices]   #no downsampling
+    #selected_elevations = elevation[::4, ::4, choices]  #downsampling every 4-th element
+
+    np.savez("sampled_elevations_for_inversion_init.npz", elevations=selected_elevations)
+
+
+
 if __name__ == '__main__':
 
     #load bathymetry generation parameters from json config file
@@ -217,10 +280,15 @@ if __name__ == '__main__':
     #generate_2D_bed(bathymetry_inversion_2D_config)
 
     #plot some sample bed bathymetries to visually check (the first two numbers are rows and columns of subplots)
-    #plot_sample_bathymetries(2, 2, bathymetry_inversion_2D_config)
+    plot_sample_bathymetries(2, 2, bathymetry_inversion_2D_config)
 
     #animate the bathymetry contours
-    animate_bathymetry_contours(bathymetry_inversion_2D_config)
+    #animate_bathymetry_contours(bathymetry_inversion_2D_config)
+
+    #select some random bathymetries as the initial zb for inversion
+    #nSamples = 10
+    #sample_bathymetries_as_inversion_init(nSamples, bathymetry_inversion_2D_config)
+
 
     #close the JSON file
     f_json.close()

@@ -653,6 +653,7 @@ def checkTFRecords(record_filename, bathymetry_inversion_2D_config, nPlotSamples
     """
 
     # Set up our dataset
+    global max
     dataset = tf.data.TFRecordDataset(record_filename)
 
     # get the number of bathymetries (= number of cases)
@@ -690,6 +691,9 @@ def checkTFRecords(record_filename, bathymetry_inversion_2D_config, nPlotSamples
     # check whether vel_WSE contains WSE or it is (u,v) only
     b_uv_only = True
 
+    dzb_dx_max = -1E6
+    dzb_dy_max = -1E6
+
     for record in dataset:
         ID, zb, vel_WSE = record
         IDs.append(ID.numpy())
@@ -703,7 +707,13 @@ def checkTFRecords(record_filename, bathymetry_inversion_2D_config, nPlotSamples
                             "In config file: n_rows, n_cols = ", n_rows, n_cols,
                             "In TFRecords files: n_rows, n_cols = ", vel_WSE.numpy().shape[0], vel_WSE.numpy().shape[1])
 
+        #calculate the "slope" maximums
+        dzb_dx_max = max(tf.math.reduce_max(tf.math.abs(tf.experimental.numpy.diff(zb, axis=1))).numpy(), dzb_dx_max)
+        dzb_dy_max = max(tf.math.reduce_max(tf.math.abs(tf.experimental.numpy.diff(zb, axis=0))).numpy(), dzb_dy_max)
+
     print("There are total of ", len(IDs), " records in the dataset. They are: ", IDs)
+
+    print("maximum absolutute slopes in x and y are: ", dzb_dx_max, dzb_dy_max)
 
     # if WSE data is not in, create a WSE with zero values
     if b_uv_only:
@@ -1060,6 +1070,10 @@ def generate_inversion_data(record_filename, bathymetry_inversion_2D_config, nIn
 
     choices = np.sort(np.random.choice(IDs, size=nExamples, replace=False))
 
+    #hack: force the choice
+    if 145 not in choices:
+        choices[0] = 145
+
     print("Chosen case IDs for generating inversion cases: ", choices)
 
     counter = 0
@@ -1081,6 +1095,99 @@ def generate_inversion_data(record_filename, bathymetry_inversion_2D_config, nIn
                 np.savez("./inversion_case_uv_" + str(ID.numpy()).zfill(4) + ".npz", zb=zb, uvWSE=uvWSE)
             else:
                 np.savez("./inversion_case_uvWSE_" + str(ID.numpy()).zfill(4) + ".npz", zb=zb, uvWSE=uvWSE)
+
+
+def generate_subset_masks(bathymetry_inversion_2D_config):
+    """
+    Genearte subset masks for inversion (the masks indicate the subset of (u,v,WSE) used in inversion.
+
+    :param bathymetry_inversion_2D_config:
+
+    :return:
+    """
+
+    # output file name for the generated bathymetry data
+    bathymetry_data_file_name = bathymetry_inversion_2D_config['bathymetry parameters']['bathymetry_data_file_name']
+
+    # load the bathymetry data from file
+    bathymetry_data = np.load(bathymetry_data_file_name)
+
+    xArray = bathymetry_data['xArray']
+    yArray = bathymetry_data['yArray']
+    X, Y = np.meshgrid(xArray, yArray)
+
+    # get number of rows (in y-direction)
+    n_rows = bathymetry_inversion_2D_config['SRH-2D cases']['sample_result_n_rows']
+    # get number of colmuns (in x-direction)
+    n_cols = bathymetry_inversion_2D_config['SRH-2D cases']['sample_result_n_cols']
+
+    # we need cases for selecting 20, 40, 60, 80%
+    samples = 2   #either 0 or 1
+
+    masks_80 = np.random.choice(samples, size=[n_rows, n_cols], replace=True, p=[0.2, 0.8])
+    masks_60 = np.random.choice(samples, size=[n_rows, n_cols], replace=True, p=[0.4, 0.6])
+    masks_40 = np.random.choice(samples, size=[n_rows, n_cols], replace=True, p=[0.6, 0.4])
+    masks_20 = np.random.choice(samples, size=[n_rows, n_cols], replace=True, p=[0.8, 0.2])
+    masks_05 = np.random.choice(samples, size=[n_rows, n_cols], replace=True, p=[0.9999, 0.0001])
+
+    #check
+    print("masks_80: ", masks_80.sum()/(n_rows*n_cols))
+    print("masks_05: ", masks_05.sum() / (n_rows * n_cols))
+
+    #plot for visualization
+    fig, axs = plt.subplots(2, 2, figsize=(8, 2.5), sharex=True, sharey=True, facecolor='w', edgecolor='k')
+    fig.subplots_adjust(hspace=.0, wspace=.1)
+
+    cmap = plt.cm.get_cmap('gray', 2)  # 2 discrete colors; PiYG, viridis
+
+    cf = axs[0, 0].contourf(X, Y, masks_05, cmap=cmap)
+    axs[0, 0].set_xlim([np.min(X), np.max(X)])
+    axs[0, 0].set_ylim([np.min(Y), np.max(Y)])
+    axs[0, 0].set_aspect('equal')
+    axs[0, 0].set_title("20 \%", fontsize=12)
+
+    cf = axs[0, 1].contourf(X, Y, masks_40, cmap=cmap)
+    axs[0, 1].set_xlim([np.min(X), np.max(X)])
+    axs[0, 1].set_ylim([np.min(Y), np.max(Y)])
+    axs[0, 1].set_aspect('equal')
+    axs[0, 1].set_title("40 \%", fontsize=12)
+
+    cf = axs[1, 0].contourf(X, Y, masks_60, cmap=cmap)
+    axs[1, 0].set_xlim([np.min(X), np.max(X)])
+    axs[1, 0].set_ylim([np.min(Y), np.max(Y)])
+    axs[1, 0].set_aspect('equal')
+    axs[1, 0].set_title("60 \%", fontsize=12)
+
+    cf = axs[1, 1].contourf(X, Y, masks_80, cmap=cmap)
+    axs[1, 1].set_xlim([np.min(X), np.max(X)])
+    axs[1, 1].set_ylim([np.min(Y), np.max(Y)])
+    axs[1, 1].set_aspect('equal')
+    axs[1, 1].set_title("80 \%", fontsize=12)
+
+    # hack for 2x2 plot (for publication)
+    axs[0, 0].set_ylabel('$y$ (m)', fontsize=16)
+    axs[0, 0].tick_params(axis='y', labelsize=14)
+
+    axs[1, 0].set_xlabel('$x$ (m)', fontsize=16)
+    axs[1, 0].tick_params(axis='x', labelsize=14)
+    axs[1, 0].set_ylabel('$y$ (m)', fontsize=16)
+    axs[1, 0].tick_params(axis='y', labelsize=14)
+
+    axs[1, 1].set_xlabel('$x$ (m)', fontsize=16)
+    axs[1, 1].tick_params(axis='x', labelsize=14)
+
+    clb = fig.colorbar(cf, ticks=[0,1], ax=axs.ravel().tolist(), shrink=0.75)
+    clb.set_label('Mask', labelpad=0.3, fontsize=14)
+
+    plt.savefig("masks.png", dpi=300, bbox_inches='tight', pad_inches=0)
+    plt.show()
+
+    np.savez("masks_05.npz", masks=masks_05)
+    np.savez("masks_20.npz", masks=masks_20)
+    np.savez("masks_40.npz", masks=masks_40)
+    np.savez("masks_60.npz", masks=masks_60)
+    np.savez("masks_80.npz", masks=masks_80)
+
 
 if __name__ == "__main__":
 
@@ -1107,6 +1214,8 @@ if __name__ == "__main__":
     #convert (sample) all SRH-2D cases results to training data
     #sample_all_SRH_2D_cases(bathymetry_inversion_2D_config)
 
+    #generate masks to only use subset of (u,v,WSE) for inversion
+
     #plot results and make visual check on some example SRH-2D cases
     #plot_example_results(bathymetry_inversion_2D_config, nExamples=4)
 
@@ -1115,11 +1224,14 @@ if __name__ == "__main__":
     #checkTFRecords('test_uv.tfrecords', bathymetry_inversion_2D_config, nPlotSamples=2)
     #checkTFRecords('test_uvWSE.tfrecords', bathymetry_inversion_2D_config, nPlotSamples=2)
     #checkTFRecords('validation.tfrecords', bathymetry_inversion_2D_config, nPlotSamples=-1)
-    #checkTFRecords('train.tfrecords', bathymetry_inversion_2D_config, nPlotSamples=-1)
+    #checkTFRecords('train_uvWSE.tfrecords', bathymetry_inversion_2D_config, nPlotSamples=1)
 
     #generate some inversion data
-    #generate_inversion_data('test_uv.tfrecords', bathymetry_inversion_2D_config, nInversionCases=1)
-    generate_inversion_data('test_uvWSE.tfrecords', bathymetry_inversion_2D_config, nInversionCases=1)
+    #generate_inversion_data('test_uv.tfrecords', bathymetry_inversion_2D_config, nInversionCases=-1)
+    #generate_inversion_data('test_uvWSE.tfrecords', bathymetry_inversion_2D_config, nInversionCases=-1)
+
+    # generate masks to only use subset of (u,v,WSE) for inversion
+    generate_subset_masks(bathymetry_inversion_2D_config)
 
     #close the JSON config file
     f_json.close()

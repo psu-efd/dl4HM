@@ -326,12 +326,12 @@ if __name__ == '__main__':
     #Input: [:,64,256,1]
     #Output: []
     #generate_tf_model_64_by_256(b_uv_only=True)  #generate uv_only, i.e., output = (u, v)
-    #generate_tf_model_64_by_256(b_uv_only=False)  # generate uvWSE, i.e., output = (u,v, WSE)
+    generate_tf_model_64_by_256(b_uv_only=False)  # generate uvWSE, i.e., output = (u,v, WSE)
 
     #generate_tf_model_16_by_64(b_uv_only=True)  #generate uv_only, i.e., output = (u, v)
     #generate_tf_model_16_by_64(b_uv_only=False)  # generate uvWSE, i.e., output = (u,v, WSE)
 
-    generate_tf_model_8_by_32(b_uv_only=True)  #generate uv_only, i.e., output = (u, v)
-    generate_tf_model_8_by_32(b_uv_only=False)  # generate uvWSE, i.e., output = (u,v, WSE)
+    #generate_tf_model_8_by_32(b_uv_only=True)  #generate uv_only, i.e., output = (u, v)
+    #generate_tf_model_8_by_32(b_uv_only=False)  # generate uvWSE, i.e., output = (u,v, WSE)
 
     print("All done!")

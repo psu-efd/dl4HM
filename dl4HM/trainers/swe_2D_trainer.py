@@ -58,8 +58,10 @@ class SWEs2DModelTrainer(BaseTrainer):
         # add model check point callback
         self.callbacks.append(
             ModelCheckpoint(
+                #filepath=os.path.join(self.config.callbacks.checkpoint_dir,
+                #                      '%s-{epoch:02d}.hdf5' % self.config.case.name),
                 filepath=os.path.join(self.config.callbacks.checkpoint_dir,
-                                      '%s-{epoch:02d}.hdf5' % self.config.case.name),
+                                       '%s.hdf5' % self.config.case.name),
                 monitor=self.config.callbacks.checkpoint_monitor,
                 mode=self.config.callbacks.checkpoint_mode,
                 save_best_only=self.config.callbacks.checkpoint_save_best_only,
