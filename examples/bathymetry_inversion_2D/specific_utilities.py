@@ -1514,7 +1514,6 @@ def plot_zb_inversion_loss_components_cnn_structure():
 
     plt.show()
 
-
 def plot_zb_inversion_result_profiles_uv_uncertainty(zb_inverted_result_filename, config_filename):
     """
     Plot the zb inversion result profiles and compare with zb_truth
@@ -2566,6 +2565,320 @@ def plot_modified_relu_scheme():
 
     plt.show()
 
+
+def calculate_relative_and_absolute_errors_for_all_test_cases():
+    """
+    For all test cases, calculate the absolute and relative errors. The errors will be
+    reported in the manuscript.
+
+    :return:
+    """
+
+    with open('varialbes_min_max.json') as json_file:
+        var_min_max = json.load(json_file)
+
+    xl = var_min_max['bounds'][0]
+    xh = var_min_max['bounds'][1]
+    yl = var_min_max['bounds'][2]
+    yh = var_min_max['bounds'][3]
+
+    zb_min = var_min_max['zb_min']
+    zb_max = var_min_max['zb_max']
+
+    vel_x_min = var_min_max['vel_x_min']
+    vel_x_max = var_min_max['vel_x_max']
+    vel_y_min = var_min_max['vel_y_min']
+    vel_y_max = var_min_max['vel_y_max']
+    WSE_min = var_min_max['WSE_min']
+    WSE_max = var_min_max['WSE_max']
+
+    #prediction results: (u,v) out of NN_(u,v,WSE)
+    prediction_results = np.load('uvWSE_cases/sampled_64_256/inversion_hyperparameter_cases/inversion_with_uv_only/case_1/prediction_results.npz')
+
+    zb_test_all = scale_back(prediction_results['zb_test_all'], zb_min, zb_max)
+
+    u_target_all = scale_back(prediction_results['uvWSE_test_all'][:,:,0,:], vel_x_min, vel_x_max)
+    v_target_all = scale_back(prediction_results['uvWSE_test_all'][:,:,1,:], vel_y_min, vel_y_max)
+    WSE_target_all = scale_back(prediction_results['uvWSE_test_all'][:,:,2,:], WSE_min, WSE_max)
+
+    u_pred_all = scale_back(prediction_results['uvWSE_pred_all'][:,:,0,:], vel_x_min, vel_x_max)
+    v_pred_all = scale_back(prediction_results['uvWSE_pred_all'][:,:,1,:], vel_y_min, vel_y_max)
+    WSE_pred_all = scale_back(prediction_results['uvWSE_pred_all'][:,:,2,:], WSE_min, WSE_max)
+
+    #number of test cases
+    nTests = u_target_all.shape[-1]
+    n_rows = u_target_all.shape[0]
+    n_cols = u_target_all.shape[1]
+    print("There are total of ", nTests, " cases of prediction in the result file.")
+
+    #errors for all test cases
+    u_error_all = u_target_all - u_pred_all
+    v_error_all = v_target_all - v_pred_all
+    WSE_error_all = WSE_target_all - WSE_pred_all
+
+    #relative errors for all test cases
+    u_rel_error_all = np.divide(np.abs(u_error_all), np.maximum(np.abs(u_error_all), np.abs(u_target_all)))
+    v_rel_error_all = np.divide(np.abs(v_error_all), np.maximum(np.abs(v_error_all), np.abs(v_target_all)))
+    WSE_rel_error_all = np.divide(np.abs(WSE_error_all), np.maximum(np.abs(WSE_error_all), np.abs(WSE_target_all)))
+
+    #average absolute errors
+    average_absolute_error_u = np.mean(np.abs(u_error_all))
+    average_absolute_error_v = np.mean(np.abs(v_error_all))
+    average_absolute_error_WSE = np.mean(np.abs(WSE_error_all))
+
+    #average relative errors
+    average_relative_error_u = np.mean(u_rel_error_all)
+    average_relative_error_v = np.mean(v_rel_error_all)
+    average_relative_error_WSE = np.mean(WSE_rel_error_all)
+
+    #maximum absolute errors
+    max_absolute_error_u = np.max(np.abs(u_error_all))
+    max_absolute_error_v = np.max(np.abs(v_error_all))
+    max_absolute_error_WSE = np.max(np.abs(WSE_error_all))
+
+    # maximum relative errors
+    max_relative_error_u = np.max(np.abs(u_rel_error_all))
+    max_relative_error_v = np.max(np.abs(v_rel_error_all))
+    max_relative_error_WSE = np.max(np.abs(WSE_rel_error_all))
+
+    #use numpy to calculate the Lp norms where p=1, 2, and inf
+    norm_l1_u_error_all = np.zeros(nTests)  #error
+    norm_l1_v_error_all = np.zeros(nTests)
+    norm_l1_WSE_error_all = np.zeros(nTests)
+
+    norm_l2_u_error_all = np.zeros(nTests)
+    norm_l2_v_error_all = np.zeros(nTests)
+    norm_l2_WSE_error_all = np.zeros(nTests)
+
+    norm_linf_u_error_all = np.zeros(nTests)
+    norm_linf_v_error_all = np.zeros(nTests)
+    norm_linf_WSE_error_all = np.zeros(nTests)
+
+    norm_l1_u_relative_error_all = np.zeros(nTests)  #relative
+    norm_l1_v_relative_error_all = np.zeros(nTests)
+    norm_l1_WSE_relative_error_all = np.zeros(nTests)
+
+    norm_l2_u_relative_error_all = np.zeros(nTests)
+    norm_l2_v_relative_error_all = np.zeros(nTests)
+    norm_l2_WSE_relative_error_all = np.zeros(nTests)
+
+    norm_linf_u_relative_error_all = np.zeros(nTests)
+    norm_linf_v_relative_error_all = np.zeros(nTests)
+    norm_linf_WSE_relative_error_all = np.zeros(nTests)
+
+    for i in range(nTests):
+        norm_l1_u_error_all[i] = np.linalg.norm(u_error_all[:, :, i].flatten(), ord=1)       #error
+        norm_l1_v_error_all[i] = np.linalg.norm(v_error_all[:, :, i].flatten(), ord=1)
+        norm_l1_WSE_error_all[i] = np.linalg.norm(WSE_error_all[:, :, i].flatten(), ord=1)
+
+        norm_l2_u_error_all[i] = np.linalg.norm(u_error_all[:, :, i].flatten(), ord=2)
+        norm_l2_v_error_all[i] = np.linalg.norm(v_error_all[:, :, i].flatten(), ord=2)
+        norm_l2_WSE_error_all[i] = np.linalg.norm(WSE_error_all[:, :, i].flatten(), ord=2)
+
+        norm_linf_u_error_all[i] = np.linalg.norm(u_error_all[:, :, i].flatten(), ord=np.inf)
+        norm_linf_v_error_all[i] = np.linalg.norm(v_error_all[:, :, i].flatten(), ord=np.inf)
+        norm_linf_WSE_error_all[i] = np.linalg.norm(WSE_error_all[:, :, i].flatten(), ord=np.inf)
+
+        norm_l1_u_relative_error_all[i] = np.linalg.norm(u_rel_error_all[:, :, i].flatten(), ord=1)         #relative error
+        norm_l1_v_relative_error_all[i] = np.linalg.norm(v_rel_error_all[:, :, i].flatten(), ord=1)
+        norm_l1_WSE_relative_error_all[i] = np.linalg.norm(WSE_rel_error_all[:, :, i].flatten(), ord=1)
+
+        norm_l2_u_relative_error_all[i] = np.linalg.norm(u_rel_error_all[:, :, i].flatten(), ord=2)
+        norm_l2_v_relative_error_all[i] = np.linalg.norm(v_rel_error_all[:, :, i].flatten(), ord=2)
+        norm_l2_WSE_relative_error_all[i] = np.linalg.norm(WSE_rel_error_all[:, :, i].flatten(), ord=2)
+
+        norm_linf_u_relative_error_all[i] = np.linalg.norm(u_rel_error_all[:, :, i].flatten(), ord=np.inf)
+        norm_linf_v_relative_error_all[i] = np.linalg.norm(v_rel_error_all[:, :, i].flatten(), ord=np.inf)
+        norm_linf_WSE_relative_error_all[i] = np.linalg.norm(WSE_rel_error_all[:, :, i].flatten(), ord=np.inf)
+
+    #calculate the RMSE
+    rmse_u_error_all = norm_l2_u_error_all/np.sqrt(n_rows*n_cols)         #error
+    rmse_v_error_all = norm_l2_v_error_all / np.sqrt(n_rows * n_cols)
+    rmse_WSE_error_all = norm_l2_WSE_error_all / np.sqrt(n_rows * n_cols)
+
+    #rmse_u_rel_error_all = norm_l2_u_relative_error_all / np.sqrt(n_rows * n_cols)     #relative error
+    #rmse_v_rel_error_all = norm_l2_v_relative_error_all / np.sqrt(n_rows * n_cols)
+    #rmse_WSE_rel_error_all = norm_l2_WSE_relative_error_all / np.sqrt(n_rows * n_cols)
+
+    rmse_u_rel_error_all = norm_l1_u_relative_error_all / (n_rows * n_cols)  # relative error
+    rmse_v_rel_error_all = norm_l1_v_relative_error_all / (n_rows * n_cols)
+    rmse_WSE_rel_error_all = norm_l1_WSE_relative_error_all / (n_rows * n_cols)
+
+    #calculate the mean and max of all errors
+    norm_l1_u_error_max = norm_l1_u_error_all.max() / (n_rows * n_cols)    #l1
+    norm_l1_u_error_mean = norm_l1_u_error_all.mean() / (n_rows * n_cols)
+    norm_l1_u_error_std = norm_l1_u_error_all.std() / (n_rows * n_cols)
+
+    norm_l1_v_error_max = norm_l1_v_error_all.max() / (n_rows * n_cols)
+    norm_l1_v_error_mean = norm_l1_v_error_all.mean() / (n_rows * n_cols)
+    norm_l1_v_error_std = norm_l1_v_error_all.std() / (n_rows * n_cols)
+
+    norm_l1_WSE_error_max = norm_l1_WSE_error_all.max() / (n_rows * n_cols)
+    norm_l1_WSE_error_mean = norm_l1_WSE_error_all.mean() / (n_rows * n_cols)
+    norm_l1_WSE_error_std = norm_l1_WSE_error_all.std() / (n_rows * n_cols)
+
+    norm_l2_u_error_max = norm_l2_u_error_all.max()      #l2
+    norm_l2_u_error_mean = norm_l2_u_error_all.mean()
+    norm_l2_u_error_std = norm_l2_u_error_all.std()
+
+    norm_l2_v_error_max = norm_l2_v_error_all.max()
+    norm_l2_v_error_mean = norm_l2_v_error_all.mean()
+    norm_l2_v_error_std = norm_l2_v_error_all.std()
+
+    norm_l2_WSE_error_max = norm_l2_WSE_error_all.max()
+    norm_l2_WSE_error_mean = norm_l2_WSE_error_all.mean()
+    norm_l2_WSE_error_std = norm_l2_WSE_error_all.std()
+
+    norm_linf_u_error_max = norm_linf_u_error_all.max()  # linf
+    norm_linf_u_error_mean = norm_linf_u_error_all.mean()
+    norm_linf_u_error_std = norm_linf_u_error_all.std()
+
+    norm_linf_v_error_max = norm_linf_v_error_all.max()
+    norm_linf_v_error_mean = norm_linf_v_error_all.mean()
+    norm_linf_v_error_std = norm_linf_v_error_all.std()
+
+    norm_linf_WSE_error_max = norm_linf_WSE_error_all.max()
+    norm_linf_WSE_error_mean = norm_linf_WSE_error_all.mean()
+    norm_linf_WSE_error_std = norm_linf_WSE_error_all.std()
+
+    rmse_u_error_max = rmse_u_error_all.max()         #rmse for error
+    rmse_u_error_mean = rmse_u_error_all.mean()
+    rmse_u_error_std = rmse_u_error_all.std()
+
+    rmse_v_error_max = rmse_v_error_all.max()
+    rmse_v_error_mean = rmse_v_error_all.mean()
+    rmse_v_error_std = rmse_v_error_all.std()
+
+    rmse_WSE_error_max = rmse_WSE_error_all.max()
+    rmse_WSE_error_mean = rmse_WSE_error_all.mean()
+    rmse_WSE_error_std = rmse_WSE_error_all.std()
+
+    rmse_u_rel_error_max = rmse_u_rel_error_all.max()         #rmse for relative error
+    rmse_u_rel_error_mean = rmse_u_rel_error_all.mean()
+    rmse_u_rel_error_std = rmse_u_rel_error_all.std()
+
+    rmse_v_rel_error_max = rmse_v_rel_error_all.max()
+    rmse_v_rel_error_mean = rmse_v_rel_error_all.mean()
+    rmse_v_rel_error_std = rmse_v_rel_error_all.std()
+
+    rmse_WSE_rel_error_max = rmse_WSE_rel_error_all.max()
+    rmse_WSE_rel_error_mean = rmse_WSE_rel_error_all.mean()
+    rmse_WSE_rel_error_std = rmse_WSE_rel_error_all.std()
+
+    #format strings for float
+    formatted_float_f ="{:.4f}"
+    formatted_float_e = "{:.2e}"
+
+    #print the result to screen so we can copy it to Latex table.
+    print("$u$ &", formatted_float_f.format(rmse_u_error_mean), " & ", formatted_float_f.format(rmse_u_error_max), " & ", formatted_float_e.format(rmse_u_error_std), " & ", formatted_float_f.format(rmse_u_rel_error_mean*100), " & ", formatted_float_f.format(rmse_u_rel_error_max*100), " & ", formatted_float_f.format(rmse_u_rel_error_std*100), "\\\\")
+    print("\\hline")
+    print("$v$ &", formatted_float_f.format(rmse_v_error_mean), " & ", formatted_float_f.format(rmse_v_error_max), " & ", formatted_float_e.format(rmse_v_error_std), " & ", formatted_float_f.format(rmse_v_rel_error_mean*100), " & ", formatted_float_f.format(rmse_v_rel_error_max*100), " & ", formatted_float_f.format(rmse_v_rel_error_std*100), "\\\\")
+    print("\\hline")
+    print("WSE &", formatted_float_f.format(rmse_WSE_error_mean), " & ", formatted_float_f.format(rmse_WSE_error_max), " & ", formatted_float_e.format(rmse_WSE_error_std), " & ", formatted_float_f.format(rmse_WSE_rel_error_mean*100), " & ", formatted_float_f.format(rmse_WSE_rel_error_max*100), " & ", formatted_float_f.format(rmse_WSE_rel_error_std*100), "\\\\")
+
+
+
+def zb_inversion_process_for_publication(config_filename):
+    """
+    Plot the zb inversion process at several iterations (for publication)
+
+    :param zb_inverted_result_filename:
+
+    :return:
+    """
+
+    # capture the config path from the run arguments
+    # then process the json configuration file
+    try:
+        # args = get_args()
+        # config = process_config(args.config)
+
+        # hard-wired the JSON configuration file name
+        config = process_config(config_filename)
+    except:
+        raise Exception("missing or invalid arguments")
+
+    print('Create the data loader/generator.')
+    data_loader = SWEs2DDataLoader(config)
+
+    var_min_max = data_loader.get_variables_min_max()
+
+    xl = var_min_max['bounds'][0]
+    xh = var_min_max['bounds'][1]
+    yl = var_min_max['bounds'][2]
+    yh = var_min_max['bounds'][3]
+
+    zb_min = var_min_max['zb_min']
+    zb_max = var_min_max['zb_max']
+
+    #zbs = np.load('zb_inverted_result.npz')
+    #zb_truth = zbs['zb_truth']
+
+    #load intermediate zb results
+    zbs = np.load('zb_intermediate_0.npz')
+    zb_intermediate = zbs['zb_intermediate']
+    zb_intermediate = scale_back(zb_intermediate, zb_min, zb_max)
+
+    #number of intermediate steps
+    nSteps = zb_intermediate.shape[-1]
+
+    vmin = -0.5
+    vmax = 0.5
+    levels = np.linspace(vmin, vmax, 51)
+    levels = scale_back(levels, zb_min, zb_max)
+
+    n_rows = zb_intermediate.shape[0]
+    n_cols = zb_intermediate.shape[1]
+
+    x = np.linspace(xl, xh, n_cols)
+    y = np.linspace(yl, yh, n_rows)
+    X, Y = np.meshgrid(x, y)
+
+    #number of rows and columns for subplots
+    nPlot_rows = 4
+    nPlot_cols = 2
+
+    ite_numbers_for_plot = [[0 for x in range(nPlot_cols)] for y in range(nPlot_rows)]
+    ite_numbers_for_plot[0][0] = 0
+    ite_numbers_for_plot[1][0] = 1
+    ite_numbers_for_plot[2][0] = 2
+    ite_numbers_for_plot[3][0] = 10
+    ite_numbers_for_plot[0][1] = 50
+    ite_numbers_for_plot[1][1] = 300
+    ite_numbers_for_plot[2][1] = 600
+    ite_numbers_for_plot[3][1] = 999
+
+    # three columns for subplots: init/truth, zb_inverted/mean_zb, diff
+    fig, axs = plt.subplots(nPlot_rows, nPlot_cols, figsize=(nPlot_cols*5, nPlot_rows*1.5), sharex=True, sharey=True, facecolor='w', edgecolor='k')
+    fig.subplots_adjust(hspace=.05, wspace=.2)
+
+    for col in range(nPlot_cols):
+        for row in range(nPlot_rows):
+            cf_zb_inverted = axs[row, col].contourf(X, Y, np.squeeze(zb_intermediate[:, :, ite_numbers_for_plot[row][col]]), levels, vmin=zb_min,
+                                                vmax=zb_max,  cmap=plt.cm.terrain, extend='both')
+            axs[row, col].set_xlim([xl, xh])
+            axs[row, col].set_ylim([yl, yh])
+            axs[row, col].set_aspect('equal')
+            if row == 3:
+                axs[row, col].set_xlabel('$x$ (m)', fontsize=16)
+            axs[row, col].tick_params(axis='x', labelsize=14)
+            if col == 0:
+                axs[row, col].set_ylabel('$y$ (m)', fontsize=16)
+
+            axs[row, col].tick_params(axis='y', labelsize=14)
+            axs[row, col].set_title("Inversion iteration "+str(ite_numbers_for_plot[row][col]), fontsize=16)
+            divider = make_axes_locatable(axs[row, col])
+            cax = divider.append_axes("right", size="3%", pad=0.1)
+            clb_zb_inverted = fig.colorbar(cf_zb_inverted, ticks=np.linspace(zb_min, zb_max, 7), cax=cax)
+            clb_zb_inverted.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
+            clb_zb_inverted.ax.tick_params(labelsize=12)
+            clb_zb_inverted.ax.set_title('(m)', fontsize=12)
+
+    plt.savefig("zb_inversion_process.png", dpi=300, bbox_inches='tight', pad_inches=0)
+
+    plt.show()
+
+
 def test_tf_random_generator():
     g1 = tf.random.Generator.from_seed(1)
     print(g1.uniform(shape=[5, 5],minval=-0.025, maxval=0.025))
@@ -2582,6 +2895,10 @@ if __name__ == '__main__':
 
     #test_tf_random_generator()
 
-    plot_zb_inversion_loss_components_cnn_structure()
+    #plot_zb_inversion_loss_components_cnn_structure()
+
+    #calculate_relative_and_absolute_errors_for_all_test_cases()
+
+
 
     print("Done!")
