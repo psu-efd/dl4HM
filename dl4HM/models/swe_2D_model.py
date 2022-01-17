@@ -225,6 +225,8 @@ class SWEs2DModel(BaseModelWrapper):
             else:
                 raise Exception("The specified loss_type is not supported.")
 
+            # Add other loss contributions, such as regularization
+
             # Add a scalar to tensorboard
             #tf.summary.scalar('loss', loss)
 

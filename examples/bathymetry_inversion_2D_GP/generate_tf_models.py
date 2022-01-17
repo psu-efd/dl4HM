@@ -1,5 +1,5 @@
 """
-Generate Tensorflow NN models and save to JSON files, which can be used by other code.
+Generate Tensorflow NN models and save to JSON files, which can be used by later, e.g., load in by swe_2D_model.
 
 """
 

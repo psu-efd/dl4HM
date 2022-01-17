@@ -69,9 +69,9 @@ class SWEs2DModelInverter(BaseInverter):
 
         #a multiplication factor for value loss due to masking. This is because the masking will reduce the
         #value loss magnitude. To have the same comparison with other losses, we need this multiplication factor
-        self.masks_multiplication_factor = (self.output_data_shape[0]*self.output_data_shape[1])/self.masks_np_org.sum()
-        print("In inverter: masks_multiplication_factor = ", tf.reduce_sum(self.masks).numpy())
-        print("In inverter: using ", self.masks_np_org.sum(), " subset out of ",  (self.output_data_shape[0]*self.output_data_shape[1]))
+        self.masks_multiplication_factor = (self.output_data_shape[0]*self.output_data_shape[1])/(self.masks_np_org.sum()/self.masks_np_org.shape[-1])
+        print("In inverter: masks_multiplication_factor = ", self.masks_multiplication_factor)
+        print("In inverter: using ", self.masks_np_org.sum()/self.masks_np_org.shape[-1], " subset out of ",  (self.output_data_shape[0]*self.output_data_shape[1]))
 
         #the inversion variable, i.e., zb
         #self.zb_np = np.zeros(self.input_data_shape)
