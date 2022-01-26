@@ -8,19 +8,11 @@
 
 examples/misc
 
-examples/bathymetry_inversion_2D_Perlin/
+examples/bathymetry_inversion_2D/experiments
 
 examples/backwater_curve_surrogate_model/experiments
 
-examples/bathymetry_inversion_2D_GP/experiments
-examples/bathymetry_inversion_2D_GP/*.png
-examples/bathymetry_inversion_2D_GP/SRH-2D
-# examples/bathymetry_inversion_2D_GP/uvWSE_cases/sampled_64_256
-examples/bathymetry_inversion_2D_GP/uvWSE_cases/sampled_64_256/*.png
-
-# examples/bathymetry_inversion_2D_GP/uvWSE_cases/
-examples/bathymetry_inversion_2D_GP/uv_only_cases/
-examples/swe2d_uvWSE_to_zb/
+examples/saved_examples_not_synced
 
 
 sandbox

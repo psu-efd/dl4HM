@@ -3,6 +3,8 @@ import tensorflow as tf
 import numpy as np
 from tensorflow.keras import backend as kb
 
+from scipy.optimize import minimize
+
 class SWEs2DModelInverter(BaseInverter):
     def __init__(self, modelWrapper, dataLoader, config):
         super(SWEs2DModelInverter, self).__init__(modelWrapper, dataLoader, config)
@@ -116,10 +118,14 @@ class SWEs2DModelInverter(BaseInverter):
             self.zb_np = (np.random.random(self.input_data_shape) - 0.5) * 0.0
         else:
             #make sure the provided zb_np is in the correct shape, e.g., [64, 256, 1]
-            assert zb_init.shape[0] == self.input_data_shape[0] and \
-                zb_init.shape[1] == self.input_data_shape[1]
+            if zb_init.shape[0] != self.input_data_shape[0] or \
+                zb_init.shape[1] != self.input_data_shape[1]:
+                print("zb_init.shape =", zb_init.shape," does not match with input_data_shape = ", self.input_data_shape)
+                raise Exception("zb_init and input_data_shape does not match.")
 
             self.zb_np = zb_init
+
+            #self.zb_np = (np.random.random(self.input_data_shape) - 0.5) * 0.0
 
         # expand one dimension to zb_np, e.g, [64, 256, 1] to [1, 64, 256, 1]
         self.zb_np = self.zb_np[np.newaxis, :, :, :]
@@ -134,7 +140,7 @@ class SWEs2DModelInverter(BaseInverter):
         self.zb_intermediate = None
 
 
-    def invert(self,bSave_intermediate=False):
+    def invert(self,bSave_intermediate=False, bVerbose=False):
         """
         Perform inversion to get the bed
 
@@ -175,9 +181,16 @@ class SWEs2DModelInverter(BaseInverter):
 
                 # add value regularization
                 #loss_value_regularization = self.regularizer(self.zb)
-                loss_value_regularization = self.config.inverter.value_regularization_factor * \
-                                            tf.math.reduce_sum(tf.nn.relu(tf.math.abs(self.zb - self.config.inverter.value_regularization_mean) -
-                                                                          self.config.inverter.value_regularization_amplitude))
+                #loss_value_regularization = (self.config.inverter.value_regularization_factor**2) * \
+                #                            tf.math.reduce_sum(tf.math.square(
+                #                                tf.nn.relu(tf.math.abs(self.zb - self.config.inverter.value_regularization_mean) -
+                #                                                          self.config.inverter.value_regularization_amplitude)))
+
+                loss_value_regularization = (self.config.inverter.value_regularization_factor) * \
+                                            tf.math.reduce_sum(
+                                                tf.nn.relu(tf.math.abs(
+                                                    self.zb - self.config.inverter.value_regularization_mean) -
+                                                           self.config.inverter.value_regularization_amplitude))
 
                 self.loss += loss_value_regularization
 
@@ -185,16 +198,28 @@ class SWEs2DModelInverter(BaseInverter):
                 dzb_dx = tf.math.abs(tf.experimental.numpy.diff(self.zb, axis=2))
                 dzb_dy = tf.math.abs(tf.experimental.numpy.diff(self.zb, axis=1))
                 #loss_slope = self.config.inverter.slope_regularization_factor * (tf.math.reduce_mean(dzb_dx) + tf.math.reduce_mean(dzb_dy))
-                loss_slope = self.config.inverter.slope_regularization_factor * (
-                            tf.math.reduce_sum(tf.nn.relu(tf.math.abs(dzb_dx - self.config.inverter.slope_regularization_mean_xslope) -
-                                                          self.config.inverter.slope_regularization_amplitude)) +
-                            tf.math.reduce_sum(tf.nn.relu(tf.math.abs(dzb_dy - self.config.inverter.slope_regularization_mean_yslope) -
-                                                          self.config.inverter.slope_regularization_amplitude))
+                #loss_slope = (self.config.inverter.slope_regularization_factor**2) * (
+                #            tf.math.reduce_sum(tf.math.square(
+                #                tf.nn.relu(tf.math.abs(dzb_dx - self.config.inverter.slope_regularization_mean_xslope) -
+                #                                          self.config.inverter.slope_regularization_amplitude_xslope))) +
+                #            tf.math.reduce_sum(tf.math.square(
+                #                tf.nn.relu(tf.math.abs(dzb_dy - self.config.inverter.slope_regularization_mean_yslope) -
+                #                                          self.config.inverter.slope_regularization_amplitude_yslope)))
+                #)
+
+                loss_slope = (self.config.inverter.slope_regularization_factor) * (
+                        tf.math.reduce_sum(
+                            tf.nn.relu(tf.math.abs(dzb_dx - self.config.inverter.slope_regularization_mean_xslope) -
+                                       self.config.inverter.slope_regularization_amplitude_xslope)) +
+                        tf.math.reduce_sum(
+                            tf.nn.relu(tf.math.abs(dzb_dy - self.config.inverter.slope_regularization_mean_yslope) -
+                                       self.config.inverter.slope_regularization_amplitude_yslope))
                 )
 
                 self.loss += loss_slope
 
-                print("Iter. #, total loss, prediction error loss, value regularization loss, slope loss: ",
+                if bVerbose:
+                    print("Iter. #, total loss, prediction error loss, value regularization loss, slope loss: ",
                       i, self.loss.numpy(), loss_prediction_error.numpy(), loss_value_regularization.numpy(), loss_slope.numpy())
 
                 self.losses.append([self.loss.numpy(), loss_prediction_error.numpy(), loss_value_regularization.numpy(), loss_slope.numpy()])
@@ -202,6 +227,197 @@ class SWEs2DModelInverter(BaseInverter):
             grads = tape.gradient(self.loss, [self.zb])
 
             self.optimizer.apply_gradients(zip(grads, [self.zb]))
+
+
+    def invert_scipy(self,bSave_intermediate=False):
+        """
+        Perform inversion to get the bed (using scipy.optimize.minimize)
+
+        :return:
+        """
+
+        def loss(zb):
+            """
+            The loss function to be minimized
+            :return:
+            """
+
+            update_zb(zb)
+
+            with tf.GradientTape() as tape:
+                # use the surrogate NN model to make a prediction
+                self.uvWSE_pred = self.modelWrapper.model(self.zb, training=False)
+
+                # difference between target and predicted WSE values
+                if self.b_need_to_extract_uv:
+                    loss_prediction_error = tf.math.reduce_sum(
+                        tf.math.multiply(self.masks,
+                                         tf.math.squared_difference(self.uvWSE_target, self.uvWSE_pred[:,:,:,0:2])
+                                         )
+                    )
+                    #loss_prediction_error = tf.math.reduce_mean(tf.math.squared_difference(self.uvWSE_target, self.uvWSE_pred[:,:,:,0:2]))
+                else:
+                    loss_prediction_error = tf.math.reduce_sum(
+                        tf.math.multiply(self.masks,
+                                         tf.math.squared_difference(self.uvWSE_target, self.uvWSE_pred)
+                                         )
+                    )
+                    # loss_prediction_error = tf.math.reduce_mean(tf.math.squared_difference(self.uvWSE_target, self.uvWSE_pred))
+
+                #multiplication factor due to masking
+                loss_prediction_error *= self.masks_multiplication_factor
+
+                self.loss = loss_prediction_error
+
+                # add value regularization
+                #loss_value_regularization = self.regularizer(self.zb)
+                #loss_value_regularization = (self.config.inverter.value_regularization_factor**2) * \
+                #                            tf.math.reduce_sum(tf.math.square(
+                #                                tf.nn.relu(tf.math.abs(self.zb - self.config.inverter.value_regularization_mean) -
+                #                                                          self.config.inverter.value_regularization_amplitude)))
+
+                loss_value_regularization = (self.config.inverter.value_regularization_factor) * \
+                                            tf.math.reduce_sum(
+                                                tf.nn.relu(tf.math.abs(
+                                                    self.zb - self.config.inverter.value_regularization_mean) -
+                                                           self.config.inverter.value_regularization_amplitude))
+
+                self.loss += loss_value_regularization
+
+                # use gradient of zb (slope) as the regularizer (to favor smoother solutions)
+                dzb_dx = tf.math.abs(tf.experimental.numpy.diff(self.zb, axis=2))
+                dzb_dy = tf.math.abs(tf.experimental.numpy.diff(self.zb, axis=1))
+                #loss_slope = self.config.inverter.slope_regularization_factor * (tf.math.reduce_mean(dzb_dx) + tf.math.reduce_mean(dzb_dy))
+                #loss_slope = (self.config.inverter.slope_regularization_factor**2) * (
+                #            tf.math.reduce_sum(tf.math.square(
+                #                tf.nn.relu(tf.math.abs(dzb_dx - self.config.inverter.slope_regularization_mean_xslope) -
+                #                                          self.config.inverter.slope_regularization_amplitude_xslope))) +
+                #            tf.math.reduce_sum(tf.math.square(
+                #                tf.nn.relu(tf.math.abs(dzb_dy - self.config.inverter.slope_regularization_mean_yslope) -
+                #                                          self.config.inverter.slope_regularization_amplitude_yslope)))
+                #)
+
+                loss_slope = (self.config.inverter.slope_regularization_factor) * (
+                        tf.math.reduce_sum(
+                            tf.nn.relu(tf.math.abs(dzb_dx - self.config.inverter.slope_regularization_mean_xslope) -
+                                       self.config.inverter.slope_regularization_amplitude_xslope)) +
+                        tf.math.reduce_sum(
+                            tf.nn.relu(tf.math.abs(dzb_dy - self.config.inverter.slope_regularization_mean_yslope) -
+                                       self.config.inverter.slope_regularization_amplitude_yslope))
+                )
+
+                self.loss += loss_slope
+
+                print("Iter. #, total loss, prediction error loss, value regularization loss, slope loss: ",
+                      self.loss.numpy(), loss_prediction_error.numpy(), loss_value_regularization.numpy(), loss_slope.numpy())
+
+                self.losses.append([self.loss.numpy(), loss_prediction_error.numpy(), loss_value_regularization.numpy(), loss_slope.numpy()])
+
+            grads = tape.gradient(self.loss, [self.zb])
+
+            return self.loss.numpy()
+
+        def jac(zb):
+
+            update_zb(zb)
+
+            with tf.GradientTape() as tape:
+                # use the surrogate NN model to make a prediction
+                self.uvWSE_pred = self.modelWrapper.model(self.zb, training=False)
+
+                # difference between target and predicted WSE values
+                if self.b_need_to_extract_uv:
+                    loss_prediction_error = tf.math.reduce_sum(
+                        tf.math.multiply(self.masks,
+                                         tf.math.squared_difference(self.uvWSE_target, self.uvWSE_pred[:, :, :, 0:2])
+                                         )
+                    )
+                    # loss_prediction_error = tf.math.reduce_mean(tf.math.squared_difference(self.uvWSE_target, self.uvWSE_pred[:,:,:,0:2]))
+                else:
+                    loss_prediction_error = tf.math.reduce_sum(
+                        tf.math.multiply(self.masks,
+                                         tf.math.squared_difference(self.uvWSE_target, self.uvWSE_pred)
+                                         )
+                    )
+                    # loss_prediction_error = tf.math.reduce_mean(tf.math.squared_difference(self.uvWSE_target, self.uvWSE_pred))
+
+                # multiplication factor due to masking
+                loss_prediction_error *= self.masks_multiplication_factor
+
+                self.loss = loss_prediction_error
+
+                # add value regularization
+                # loss_value_regularization = self.regularizer(self.zb)
+                # loss_value_regularization = (self.config.inverter.value_regularization_factor**2) * \
+                #                            tf.math.reduce_sum(tf.math.square(
+                #                                tf.nn.relu(tf.math.abs(self.zb - self.config.inverter.value_regularization_mean) -
+                #                                                          self.config.inverter.value_regularization_amplitude)))
+
+                loss_value_regularization = (self.config.inverter.value_regularization_factor) * \
+                                            tf.math.reduce_sum(
+                                                tf.nn.relu(tf.math.abs(
+                                                    self.zb - self.config.inverter.value_regularization_mean) -
+                                                           self.config.inverter.value_regularization_amplitude))
+
+                self.loss += loss_value_regularization
+
+                # use gradient of zb (slope) as the regularizer (to favor smoother solutions)
+                dzb_dx = tf.math.abs(tf.experimental.numpy.diff(self.zb, axis=2))
+                dzb_dy = tf.math.abs(tf.experimental.numpy.diff(self.zb, axis=1))
+                # loss_slope = self.config.inverter.slope_regularization_factor * (tf.math.reduce_mean(dzb_dx) + tf.math.reduce_mean(dzb_dy))
+                # loss_slope = (self.config.inverter.slope_regularization_factor**2) * (
+                #            tf.math.reduce_sum(tf.math.square(
+                #                tf.nn.relu(tf.math.abs(dzb_dx - self.config.inverter.slope_regularization_mean_xslope) -
+                #                                          self.config.inverter.slope_regularization_amplitude_xslope))) +
+                #            tf.math.reduce_sum(tf.math.square(
+                #                tf.nn.relu(tf.math.abs(dzb_dy - self.config.inverter.slope_regularization_mean_yslope) -
+                #                                          self.config.inverter.slope_regularization_amplitude_yslope)))
+                # )
+
+                loss_slope = (self.config.inverter.slope_regularization_factor) * (
+                        tf.math.reduce_sum(
+                            tf.nn.relu(tf.math.abs(dzb_dx - self.config.inverter.slope_regularization_mean_xslope) -
+                                       self.config.inverter.slope_regularization_amplitude_xslope)) +
+                        tf.math.reduce_sum(
+                            tf.nn.relu(tf.math.abs(dzb_dy - self.config.inverter.slope_regularization_mean_yslope) -
+                                       self.config.inverter.slope_regularization_amplitude_yslope))
+                )
+
+                self.loss += loss_slope
+
+                print("Iter. #, total loss, prediction error loss, value regularization loss, slope loss: ",
+                      self.loss.numpy(), loss_prediction_error.numpy(), loss_value_regularization.numpy(),
+                      loss_slope.numpy())
+
+                self.losses.append([self.loss.numpy(), loss_prediction_error.numpy(), loss_value_regularization.numpy(),
+                                    loss_slope.numpy()])
+
+            grads = tape.gradient(self.loss, [self.zb])
+
+            return grads[0].numpy().flatten()
+
+        def callback_update_zb(zb):
+            """
+            Update zb during the iterations
+
+            :param zb:
+            :return:
+            """
+
+            update_zb(zb)
+
+        def update_zb(zb):
+            zb_new = zb.reshape(self.input_data_shape)
+            zb_new = zb_new[np.newaxis, :, :, :]
+
+            self.zb.assign(zb_new)
+
+
+        zb0= self.zb.numpy().squeeze().flatten()
+        res = minimize(loss, zb0, method='BFGS', jac=jac,callback=callback_update_zb)
+
+        print(res.x)
+
 
         #save the loss history to file
         #np.savez("inversion_loss_history.npz", loss=self.losses)

@@ -39,10 +39,14 @@ class SWEs2DModelTrainer(BaseTrainer):
 
     def init_callbacks(self):
         #add an early stopping callback
-        #self.callbacks.append(
-        #    tf.keras.callbacks.EarlyStopping(monitor='loss', mode='min',
-        #                                     patience=10, restore_best_weights=True)
-        #)
+        self.callbacks.append(
+            tf.keras.callbacks.EarlyStopping(
+                monitor=self.config.callbacks.EarlyStopping_monitor,
+                mode='min',
+                patience=self.config.callbacks.EarlyStopping_patience,
+                restore_best_weights=self.config.callbacks.EarlyStopping_restore_best_weights
+            )
+        )
 
         # add adaptive learning rate schedule callback
         self.callbacks.append(

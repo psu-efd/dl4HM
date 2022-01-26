@@ -4,9 +4,16 @@ Some specific utility functions, such as plotting.
 """
 
 import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
 import numpy as np
+import os
 
 from matplotlib import animation
+import matplotlib
+
+from matplotlib.patches import Ellipse
+import matplotlib.transforms as transforms
 
 import matplotlib.ticker as tick
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -18,6 +25,8 @@ from dl4HM.utils.config import process_config
 import tensorflow as tf
 
 import cv2
+
+from random import seed, sample, randint
 
 import json
 
@@ -60,14 +69,16 @@ def plot_training_validation_losses(training_history_filename):
     if (len(val_loss) !=0):
         plt.plot(np.arange(len(val_loss)), val_loss, 'r--', label='validation loss')
 
-    plt.yscale('log')
-
     plt.tick_params(axis='both', which='major', labelsize=12)
 
     #plt.title('training loss and validation loss')
     plt.xlabel('Epoch', fontsize=16)
     plt.ylabel('Loss', fontsize=16)
     plt.xlim([0,100])
+    #plt.ylim([1e-5, 1e-2])
+    plt.ylim([-0.0001,0.0015])
+    #plt.yscale('log')
+    #plt.ylim([0, 0.01])
     plt.legend(loc='upper right', fontsize=14, frameon=False)
     plt.savefig("training_validtion_losses.png", dpi=300, bbox_inches='tight', pad_inches=0)
     plt.show()
@@ -142,12 +153,15 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
         WSE_zero = np.zeros((n_rows, n_cols))
 
     # plot vel_x (simulated)
-    local_levels = scale_back(levels, vel_x_min, vel_x_max)
+    #local_levels = scale_back(levels, vel_x_min, vel_x_max)
+    u_scaled_back = scale_back(np.squeeze(vel_WSE_test[:, :, 0]), vel_x_min, vel_x_max)
+    local_levels = np.linspace(u_scaled_back.min(), u_scaled_back.max(), 51)
+
     if bPlot_dimless:
-        cf_vel_x_sim = axs[0, 0].contourf(X, Y, np.squeeze(vel_WSE_test[:, :, 0]), levels, vmin=min, vmax=max, cmap=plt.cm.jet)
+        cf_vel_x_sim = axs[0, 0].contourf(X, Y, np.squeeze(vel_WSE_test[:, :, 0]), levels, vmin=min, vmax=max, cmap=plt.cm.jet, extend='both')
     else:
         cf_vel_x_sim = axs[0, 0].contourf(X, Y, scale_back(np.squeeze(vel_WSE_test[:, :, 0]), vel_x_min, vel_x_max), local_levels,
-                                      vmin=local_levels.min(), vmax=local_levels.max(), cmap=plt.cm.jet)
+                                      vmin=local_levels.min(), vmax=local_levels.max(), cmap=plt.cm.jet, extend='both')
     axs[0, 0].set_xlim([xl, xh])
     axs[0, 0].set_ylim([yl, yh])
     axs[0, 0].set_aspect('equal')
@@ -165,10 +179,10 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
 
     # plot vel_x (predicted from NN)
     if bPlot_dimless:
-        cf_vel_x_pred = axs[0, 1].contourf(X, Y, np.squeeze(vel_WSE_pred[:, :, :, 0]), levels, vmin=min, vmax=max, cmap=plt.cm.jet)
+        cf_vel_x_pred = axs[0, 1].contourf(X, Y, np.squeeze(vel_WSE_pred[:, :, :, 0]), levels, vmin=min, vmax=max, cmap=plt.cm.jet, extend='both')
     else:
         cf_vel_x_pred = axs[0, 1].contourf(X, Y, scale_back(np.squeeze(vel_WSE_pred[:, :, :, 0]), vel_x_min, vel_x_max), local_levels,
-                                           vmin=local_levels.min(), vmax=local_levels.max(), cmap=plt.cm.jet)
+                                           vmin=local_levels.min(), vmax=local_levels.max(), cmap=plt.cm.jet, extend='both')
 
     axs[0, 1].set_xlim([xl, xh])
     axs[0, 1].set_ylim([yl, yh])
@@ -199,7 +213,7 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
     #calculate RMSE
     rmse_vel_x = np.sqrt((vel_x_diff ** 2).mean())
 
-    cf_vel_x_diff = axs[0, 2].contourf(vel_x_diff, diff_levels, vmin=v_min, vmax=v_max, cmap=plt.cm.jet)  #cm: PRGn
+    cf_vel_x_diff = axs[0, 2].contourf(vel_x_diff, diff_levels, vmin=v_min, vmax=v_max, cmap=plt.cm.jet, extend='both')  #cm: PRGn
     axs[0, 2].set_xlim([xl, xh])
     axs[0, 2].set_ylim([yl, yh])
     axs[0, 2].set_aspect('equal')
@@ -215,14 +229,16 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
         clb_vel_x_diff.ax.set_title("(m/s)", loc='center', fontsize=12)
 
     # plot vel_y (simulated)
-    local_levels = scale_back(levels, vel_y_min, vel_y_max)
+    #local_levels = scale_back(levels, vel_y_min, vel_y_max)
+    v_scaled_back = scale_back(np.squeeze(vel_WSE_test[:, :, 1]), vel_y_min, vel_y_max)
+    local_levels = np.linspace(v_scaled_back.min(), v_scaled_back.max(), 51)
 
     if bPlot_dimless:
-        cf_vel_y_sim = axs[1, 0].contourf(X, Y, np.squeeze(vel_WSE_test[:, :, 1]), levels, vmin=min, vmax=max, cmap=plt.cm.jet)
+        cf_vel_y_sim = axs[1, 0].contourf(X, Y, np.squeeze(vel_WSE_test[:, :, 1]), levels, vmin=min, vmax=max, cmap=plt.cm.jet, extend='both')
     else:
         cf_vel_y_sim = axs[1, 0].contourf(X, Y, scale_back(np.squeeze(vel_WSE_test[:, :, 1]), vel_y_min, vel_y_max),
                                           local_levels,
-                                          vmin=local_levels.min(), vmax=local_levels.max(), cmap=plt.cm.jet)
+                                          vmin=local_levels.min(), vmax=local_levels.max(), cmap=plt.cm.jet, extend='both')
 
     axs[1, 0].set_xlim([xl, xh])
     axs[1, 0].set_ylim([yl, yh])
@@ -244,11 +260,11 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
 
     # plot vel_y (predicted from NN)
     if bPlot_dimless:
-        cf_vel_y_pred = axs[1, 1].contourf(X, Y, np.squeeze(vel_WSE_pred[:, :, :, 1]), levels, vmin=min, vmax=max, cmap=plt.cm.jet)
+        cf_vel_y_pred = axs[1, 1].contourf(X, Y, np.squeeze(vel_WSE_pred[:, :, :, 1]), levels, vmin=min, vmax=max, cmap=plt.cm.jet, extend='both')
     else:
         cf_vel_y_pred = axs[1, 1].contourf(X, Y, scale_back(np.squeeze(vel_WSE_pred[:, :, :, 1]), vel_y_min, vel_y_max),
                                           local_levels,
-                                          vmin=local_levels.min(), vmax=local_levels.max(), cmap=plt.cm.jet)
+                                          vmin=local_levels.min(), vmax=local_levels.max(), cmap=plt.cm.jet, extend='both')
 
     axs[1, 1].set_xlim([xl, xh])
     axs[1, 1].set_ylim([yl, yh])
@@ -281,7 +297,7 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
     # calculate RMSE
     rmse_vel_y = np.sqrt((vel_y_diff ** 2).mean())
 
-    cf_vel_y_diff = axs[1, 2].contourf(vel_y_diff, diff_levels, vmin=v_min, vmax=v_max, cmap=plt.cm.jet)  # cm: PRGn
+    cf_vel_y_diff = axs[1, 2].contourf(vel_y_diff, diff_levels, vmin=v_min, vmax=v_max, cmap=plt.cm.jet, extend='both')  # cm: PRGn
     axs[1, 2].set_xlim([xl, xh])
     axs[1, 2].set_ylim([yl, yh])
     axs[1, 2].set_aspect('equal')
@@ -299,16 +315,19 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
 
     # plot WSE (simulated)
     if b_uv_only:
-        cf_WSE_sim = axs[2, 0].contourf(X, Y, WSE_zero, levels, vmin=min, vmax=max, cmap=plt.cm.jet)
+        cf_WSE_sim = axs[2, 0].contourf(X, Y, WSE_zero, levels, vmin=min, vmax=max, cmap=plt.cm.jet, extend='both')
     else:
-        local_levels = scale_back(levels, WSE_min, WSE_max)
+        #local_levels = scale_back(levels, WSE_min, WSE_max)
+        WSE_scaled_back = scale_back(np.squeeze(vel_WSE_test[:, :, 2]), WSE_min, WSE_max)
+        local_levels = np.linspace(WSE_scaled_back.min()-0.01, WSE_scaled_back.max()+0.01, 51)
+
         if bPlot_dimless:
             cf_WSE_sim = axs[2, 0].contourf(X, Y, np.squeeze(vel_WSE_test[:, :, 2]), levels, vmin=min, vmax=max,
-                                              cmap=plt.cm.jet)
+                                              cmap=plt.cm.jet, extend='both')
         else:
             cf_WSE_sim = axs[2, 0].contourf(X, Y, scale_back(np.squeeze(vel_WSE_test[:, :, 2]), WSE_min, WSE_max),
                                               local_levels,
-                                              vmin=local_levels.min(), vmax=local_levels.max(), cmap=plt.cm.jet)
+                                              vmin=local_levels.min(), vmax=local_levels.max(), cmap=plt.cm.jet, extend='both')
 
     axs[2, 0].set_xlim([xl, xh])
     axs[2, 0].set_ylim([yl, yh])
@@ -323,12 +342,12 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
         axs[2, 0].set_title("Simulated WSE from SRH-2D", fontsize=14)
 
     if bPlot_dimless:
-        clb_WSE_sim = fig.colorbar(cf_WSE_sim, ticks=np.linspace(min, max, 7), ax=axs[2, 0])
+        clb_WSE_sim = fig.colorbar(cf_WSE_sim, ticks=np.linspace(min, max, 5), ax=axs[2, 0])
     else:
-        clb_WSE_sim = fig.colorbar(cf_WSE_sim, ticks=np.linspace(local_levels.min(), local_levels.max(), 7),
+        clb_WSE_sim = fig.colorbar(cf_WSE_sim, ticks=np.linspace(local_levels.min(), local_levels.max(), 5),
                                      ax=axs[2, 0])
 
-    clb_WSE_sim.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
+    clb_WSE_sim.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.3f'))
     clb_WSE_sim.ax.tick_params(labelsize=12)
     if not bPlot_dimless:
         clb_WSE_sim.ax.set_title("(m)", loc='center', fontsize=12)
@@ -339,11 +358,11 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
     else:
 
         if bPlot_dimless:
-            cf_WSE_pred = axs[2, 1].contourf(X, Y, np.squeeze(vel_WSE_pred[:, :, :, 2]), levels, vmin=min, vmax=max, cmap=plt.cm.jet)
+            cf_WSE_pred = axs[2, 1].contourf(X, Y, np.squeeze(vel_WSE_pred[:, :, :, 2]), levels, vmin=min, vmax=max, cmap=plt.cm.jet, extend='both')
         else:
             cf_WSE_pred = axs[2, 1].contourf(X, Y, scale_back(np.squeeze(vel_WSE_pred[:, :, :, 2]), WSE_min, WSE_max),
                                               local_levels,
-                                              vmin=local_levels.min(), vmax=local_levels.max(), cmap=plt.cm.jet)
+                                              vmin=local_levels.min(), vmax=local_levels.max(), cmap=plt.cm.jet, extend='both')
 
     axs[2, 1].set_xlim([xl, xh])
     axs[2, 1].set_ylim([yl, yh])
@@ -356,12 +375,12 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
         axs[2, 1].set_title("Predicted WSE from CNN surrogate", fontsize=14)
 
     if bPlot_dimless:
-        clb_WSE_pred = fig.colorbar(cf_WSE_pred, ticks=np.linspace(min, max, 7), ax=axs[2, 1])
+        clb_WSE_pred = fig.colorbar(cf_WSE_pred, ticks=np.linspace(min, max, 5), ax=axs[2, 1])
     else:
-        clb_WSE_pred = fig.colorbar(cf_WSE_pred, ticks=np.linspace(local_levels.min(), local_levels.max(), 7),
+        clb_WSE_pred = fig.colorbar(cf_WSE_pred, ticks=np.linspace(local_levels.min(), local_levels.max(), 5),
                                      ax=axs[2, 1])
 
-    clb_WSE_pred.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
+    clb_WSE_pred.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.3f'))
     clb_WSE_pred.ax.tick_params(labelsize=12)
     if not bPlot_dimless:
         clb_WSE_pred.ax.set_title("(m)", loc='center', fontsize=12)
@@ -385,9 +404,9 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
     rmse_WSE = np.sqrt((WSE_diff ** 2).mean())
 
     if b_uv_only:
-        cf_WSE_diff = axs[2, 2].contourf(X, Y, WSE_diff, levels, vmin=min, vmax=max, cmap=plt.cm.jet)
+        cf_WSE_diff = axs[2, 2].contourf(X, Y, WSE_diff, levels, vmin=min, vmax=max, cmap=plt.cm.jet, extend='both')
     else:
-        cf_WSE_diff = axs[2, 2].contourf(X, Y, WSE_diff, diff_levels, vmin=v_min, vmax=v_max, cmap=plt.cm.jet)
+        cf_WSE_diff = axs[2, 2].contourf(X, Y, WSE_diff, diff_levels, vmin=v_min, vmax=v_max, cmap=plt.cm.jet, extend='both')
     axs[2, 2].set_xlim([xl, xh])
     axs[2, 2].set_ylim([yl, yh])
     axs[2, 2].set_aspect('equal')
@@ -470,6 +489,8 @@ def plot_zb_inversion_result(zb_inverted_result_filename, config_filename, bPlot
 
     print('Create the data loader/generator.')
     data_loader = SWEs2DDataLoader(config)
+
+    inversion_case_name = os.path.splitext(config.inverter.inversion_data_files)[0]
 
     var_min_max = data_loader.get_variables_min_max()
 
@@ -722,7 +743,7 @@ def plot_zb_inversion_result(zb_inverted_result_filename, config_filename, bPlot
         if not bPlot_dimless:
             clb_zb_diff.ax.set_title("(m)", loc='center', fontsize=12)
 
-    plt.savefig("zb_inversion.png", dpi=300, bbox_inches='tight',
+    plt.savefig("zb_inversion"+inversion_case_name+".png", dpi=300, bbox_inches='tight',
                 pad_inches=0)
     plt.show()
 
@@ -750,6 +771,8 @@ def plot_zb_inversion_result_profiles(zb_inverted_result_filename, config_filena
 
     print('Create the data loader/generator.')
     data_loader = SWEs2DDataLoader(config)
+
+    inversion_case_name = os.path.splitext(config.inverter.inversion_data_files)[0]
 
     var_min_max = data_loader.get_variables_min_max()
 
@@ -837,7 +860,7 @@ def plot_zb_inversion_result_profiles(zb_inverted_result_filename, config_filena
     axs[0].legend(loc='upper right', fontsize=14, frameon=False)
     axs[1].legend(loc='upper right', fontsize=14, frameon=False)
 
-    plt.savefig("zb_inversion_profiles.png", dpi=300, bbox_inches='tight', pad_inches=0)
+    plt.savefig("zb_inversion_profiles"+inversion_case_name+".png", dpi=300, bbox_inches='tight', pad_inches=0)
 
     plt.show()
 
@@ -872,22 +895,25 @@ def plot_zb_inversion_result_profiles_regularization_effects(config_filename):
     print('Create the data loader/generator.')
     data_loader = SWEs2DDataLoader(config)
 
+    inversion_case_name = os.path.splitext(config.inverter.inversion_data_files)[0]
+
     var_min_max = data_loader.get_variables_min_max()
 
     # results with both regularizations
-    zbs = np.load('inversion_hyperparameter_cases/inversion_with_uv_only/case_1/zb_inverted_result.npz')
+    zbs = np.load('zb_inverted_result_0592_both_regs.npz')
     zb_truth = zbs['zb_truth']
     zb_inverted_all_all_reg = zbs['zb_inverted']
 
     # results with no value regularization
-    zbs = np.load('inversion_hyperparameter_cases/inversion_with_uv_only/case_2/zb_inverted_result.npz')
+    zbs = np.load('zb_inverted_result_0592_no_value_reg.npz')
     zb_inverted_all_no_value_reg = zbs['zb_inverted']
 
     # results with no slope regularization
-    zbs = np.load('inversion_hyperparameter_cases/inversion_with_uv_only/case_3/zb_inverted_result.npz')
+    zbs = np.load('zb_inverted_result_0592_no_slope_reg.npz')
     zb_inverted_all_no_slope_reg = zbs['zb_inverted']
 
-    zbs = np.load('inversion_hyperparameter_cases/inversion_with_uv_only/case_4/zb_inverted_result.npz')
+    # results with no regularization
+    zbs = np.load('zb_inverted_result_0592_no_regs.npz')
     zb_inverted_all_no_reg = zbs['zb_inverted']
 
     #mean zb from all samples
@@ -933,7 +959,7 @@ def plot_zb_inversion_result_profiles_regularization_effects(config_filename):
                    label='$z_b$ (inverted mean, slope regularization only)')
     zb_value_long, = axs[0, 0].plot(x, (zb_inverted_all_no_slope_reg_mean[n_row_middle, :]+0.5) * (zb_max - zb_min) + zb_min, 'm-.', linewidth=1,
                    label='$z_b$ (inverted mean, value regularization only)')
-    zb_no_long, = axs[0, 0].plot(x, (zb_inverted_all_no_reg_mean[n_row_middle, :]+0.5) * (zb_max - zb_min) + zb_min, 'g:', linewidth=1, alpha=0.4,
+    zb_no_long, = axs[0, 0].plot(x, (zb_inverted_all_no_reg_mean[n_row_middle, :]+0.5) * (zb_max - zb_min) + zb_min, 'g:', linewidth=1, alpha=1,
                    label='$z_b$ (inverted mean, no regularization)')
 
     zb_long = [zb_both_long, zb_slope_long, zb_value_long, zb_no_long]
@@ -1083,14 +1109,14 @@ def plot_zb_inversion_result_profiles_regularization_effects(config_filename):
     # none
     #   Longitudinal
     axs[3, 0].set_xlim([xl, xh])
-    axs[3, 0].set_ylim([-5, 5])
+    axs[3, 0].set_ylim([-1.5, 0.75])
     # axs[].set_aspect('equal')
     axs[3, 0].set_xlabel('$x$ (m)', fontsize=14)
     axs[3, 0].tick_params(axis='x', labelsize=12)
     axs[3, 0].set_ylabel('$z_b$ (m)', fontsize=14)
     axs[3, 0].tick_params(axis='y', labelsize=12)
     axs[3, 0].set_title('no regularization', fontsize=14)
-    axs[3, 0].set_yticks(np.linspace(-5, 5, 5))
+    axs[3, 0].set_yticks(np.linspace(-1.5, 0.75, 5))
 
     #    Longitudinal truth and mean
     zb_truth_long, = axs[3, 0].plot(x, (zb_truth[n_row_middle, :]+0.5) * (zb_max - zb_min) + zb_min, 'k', linewidth=2,
@@ -1108,14 +1134,14 @@ def plot_zb_inversion_result_profiles_regularization_effects(config_filename):
 
     #   Cross-section
     axs[3, 1].set_xlim([yl, yh])
-    axs[3, 1].set_ylim([-5, 5])
+    axs[3, 1].set_ylim([-1.5, 0.75])
     # axs[].set_aspect('equal')
     axs[3, 1].set_xlabel('$x$ (m)', fontsize=14)
     axs[3, 1].tick_params(axis='x', labelsize=12)
     # axs[1, 1].set_ylabel('$z_b$ (m)', fontsize=14)
     axs[3, 1].tick_params(axis='y', labelsize=12)
     axs[3, 1].set_title('no regularization', fontsize=14)
-    axs[3, 1].set_yticks(np.linspace(-5, 5, 5))
+    axs[3, 1].set_yticks(np.linspace(-1.5, 0.75, 5))
 
     #    cross section truth and mean
     zb_truth_long, = axs[3, 1].plot(y, (zb_truth[:, n_col_middle] * (zb_max - zb_min)+0.5) + zb_min, 'k', linewidth=2,
@@ -1145,10 +1171,6 @@ def plot_zb_inversion_result_profiles_regularization_effects(config_filename):
     axs[3,1].text(-0.1, 1.0, "(h)", size=16, ha="center", transform=axs[3,1].transAxes)
 
     #plot each of the samples + 1 truth + 1 mean
-
-
-
-
 
     #plt.savefig("zb_inversion_profiles.png", dpi=300, bbox_inches='tight', pad_inches=0)
     plt.savefig("zb_inversion_profiles_regularization_effects.png", dpi=300, bbox_inches='tight', pad_inches=0)
@@ -1187,19 +1209,20 @@ def plot_zb_inversion_regularization_effects(config_filename, bPlot_dimless=Fals
     var_min_max = data_loader.get_variables_min_max()
 
     #results with both regularizations
-    zbs = np.load('inversion_hyperparameter_cases/inversion_with_uv_only/case_1/zb_inverted_result.npz')
+    zbs = np.load('zb_inverted_result_0592_both_regs.npz')
     zb_truth = zbs['zb_truth']
     zb_inverted_all_all_reg = zbs['zb_inverted']
 
     #results with no value regularization
-    zbs = np.load('inversion_hyperparameter_cases/inversion_with_uv_only/case_2/zb_inverted_result.npz')
+    zbs = np.load('zb_inverted_result_0592_no_value_reg.npz')
     zb_inverted_all_no_value_reg = zbs['zb_inverted']
 
     #results with no slope regularization
-    zbs = np.load('inversion_hyperparameter_cases/inversion_with_uv_only/case_3/zb_inverted_result.npz')
+    zbs = np.load('zb_inverted_result_0592_no_slope_reg.npz')
     zb_inverted_all_no_slope_reg = zbs['zb_inverted']
 
-    zbs = np.load('inversion_hyperparameter_cases/inversion_with_uv_only/case_4/zb_inverted_result.npz')
+    #results withon no regularizations at all
+    zbs = np.load('zb_inverted_result_0592_no_regs.npz')
     zb_inverted_all_no_reg = zbs['zb_inverted']
 
     #calculate, report, and save the RMSE of each result
@@ -1396,7 +1419,7 @@ def plot_zb_inversion_loss_components_cnn_structure():
     :return:
     """
 
-    with open('varialbes_min_max.json') as json_file:
+    with open('variables_min_max.json') as json_file:
         var_min_max = json.load(json_file)
 
     xl = var_min_max['bounds'][0]
@@ -1408,16 +1431,16 @@ def plot_zb_inversion_loss_components_cnn_structure():
     zb_max = var_min_max['zb_max']
 
     #results: (u,v) out of NN_(u,v,WSE)
-    zbs = np.load('uvWSE_cases/sampled_64_256/inversion_hyperparameter_cases/inversion_with_uv_only/case_1/zb_inverted_result.npz')
+    zbs = np.load('zb_inverted_result_0592_uv_NN_uvWSE.npz')
     zb_truth = (zbs['zb_truth']+0.5)*(zb_max-zb_min) + zb_min
     zb_inverted_all_uv_uvWSE = (zbs['zb_inverted']+0.5)*(zb_max-zb_min) + zb_min
 
     #results: (u,v,WSE) out of NN_(u,v,WSE)
-    zbs = np.load('uvWSE_cases/sampled_64_256/inversion_hyperparameter_cases/inversion_with_uvWSE/case_1/zb_inverted_result.npz')
+    zbs = np.load('zb_inverted_result_0592_uvWSE_NN_uvWSE.npz')
     zb_inverted_all_uvWSE_uvWSE = (zbs['zb_inverted']+0.5)*(zb_max-zb_min) + zb_min
 
     #results with no slope regularization
-    zbs = np.load('uv_only_cases/sampled_64_256/inversion_hyperparameter_cases/case_1/zb_inverted_result.npz')
+    zbs = np.load('zb_inverted_result_0592_uv_NN_uv.npz')
     zb_inverted_all_uv_uv = (zbs['zb_inverted']+0.5)*(zb_max-zb_min) + zb_min
 
     #calculate the mean
@@ -1666,7 +1689,7 @@ def animate_zb_inversion_process(config_filename):
 
     var_min_max = data_loader.get_variables_min_max()
 
-    zbs = np.load('zb_inverted_result_0.npz')
+    zbs = np.load('zb_inverted_result_0592.npz')
     zb_init_all = zbs['zb_init']
     zb_truth = zbs['zb_truth']
     zb_inverted_all = zbs['zb_inverted']
@@ -1674,21 +1697,24 @@ def animate_zb_inversion_process(config_filename):
     vel_WSE_target = zbs['uvWSE_target']
     vel_WSE_pred_all = zbs['uvWSE_pred']
 
+    # load loss data
+    losses = zbs['losses']
+
     #load intermediate zb results
-    zbs = np.load('zb_intermediate_0.npz')
+    sample_ID = 1
+    zbs = np.load('zb_intermediate_1.npz')
     zb_intermediate = zbs['zb_intermediate']
 
     #number of intermediate steps
     nSteps = zb_intermediate.shape[-1]
 
-    #load loss data
-    zb_inverted_results = np.load('zb_inverted_result_0.npz')
-    losses = zb_inverted_results['losses']
+    #the lossess for the selected sample corresponding to zb_intermediate_0.npz
+    current_losses = losses[:,:,sample_ID]
 
-    total_loss = np.squeeze(losses[:, 0])
-    loss_prediction_error = np.squeeze(losses[:, 1])
-    loss_value_regularization = np.squeeze(losses[:, 2])
-    loss_slope_regularization = np.squeeze(losses[:, 3])
+    total_loss = np.squeeze(current_losses[:, 0])
+    loss_prediction_error = np.squeeze(current_losses[:, 1])
+    loss_value_regularization = np.squeeze(current_losses[:, 2])
+    loss_slope_regularization = np.squeeze(current_losses[:, 3])
 
     # get the max and min of all losses (for plotting axis limits)
     v_min = min(total_loss.min(), loss_prediction_error.min(), loss_value_regularization.min(),
@@ -1715,8 +1741,9 @@ def animate_zb_inversion_process(config_filename):
     y = np.linspace(yl, yh, n_rows)
     X, Y = np.meshgrid(x, y)
 
-    nSteps = 1000
-    for i in range(851,nSteps):
+    for i in range(0,1000):
+    #for i in [30,50,100,200,300,400,500,600,999]:
+    #for i in [30,999]:
         print(i)
 
         # three columns for subplots: init/truth, zb_inverted/mean_zb, diff
@@ -1790,8 +1817,8 @@ def animate_zb_inversion_process(config_filename):
 
         # plt.xlim([x_min, x_max])
         axs[1, 1].set_xlim([x_min, nSteps])  # have more control on the upper x limit
-        axs[1, 1].set_ylim([1e-4, 2000])  # have more control on the lower limit
-        axs[1,1].set_yticks([1e-4,1e-3,1e-2,1e-1,1,1e1,1e2,1e3])
+        axs[1, 1].set_ylim([5e-7, 2000])  # have more control on the lower limit
+        #axs[1,1].set_yticks([1e-4,1e-3,1e-2,1e-1,1,1e1,1e2,1e3])
 
         axs[1, 1].tick_params(axis='both', which='major', labelsize=12)
 
@@ -1801,9 +1828,9 @@ def animate_zb_inversion_process(config_filename):
 
         fig.suptitle("Inversion iteration "+str(i), fontsize=18)
 
-        plt.savefig("zb_intermediate_" + str(i).zfill(4) + ".png", dpi=300, bbox_inches='tight', pad_inches=0)
+        plt.savefig("plots/zb_intermediate_" + str(i).zfill(4) + ".png", dpi=300, bbox_inches='tight', pad_inches=0)
 
-        #plt.close('all')
+        plt.close('all')
 
 def image_sequence_to_animation():
 
@@ -1821,7 +1848,7 @@ def image_sequence_to_animation():
     for i in range(0, 1000):
         print("i = ", i)
 
-        img = cv2.imread("zb_intermediate_" + str(i).zfill(4) + ".png")
+        img = cv2.imread("plots/zb_intermediate_" + str(i).zfill(4) + ".png")
         img_resize = cv2.resize(img,(width_resize,height_resize),fx=0,fy=0, interpolation = cv2.INTER_CUBIC)
         video.write(img_resize)
 
@@ -2221,6 +2248,9 @@ def plot_inversion_losses(zb_inverted_result_filename):
     # loop over all samples
     for i in range(nSamples):
         print("Plotting inversion loss history for i = ", i, "out of", nSamples)
+        print("End average prediction and slope loss = ", loss_prediction_error[800:,i].mean(),
+              loss_slope_regularization[800:,i].mean())
+
         #plot losses
         plt.plot(np.arange(total_loss.shape[0]), total_loss[:,i], 'k', label="Total loss")
         plt.plot(np.arange(loss_prediction_error.shape[0]), loss_prediction_error[:,i], 'r', linestyle='dotted', label="Prediction error loss")
@@ -2228,9 +2258,9 @@ def plot_inversion_losses(zb_inverted_result_filename):
         plt.plot(np.arange(loss_slope_regularization.shape[0]), loss_slope_regularization[:,i], 'b', linestyle='dashdot', label="Slope regularization loss")
 
         #plt.xlim([x_min, x_max])
-        plt.xlim([x_min, 600])  #have more control on the upper x limit
+        #plt.xlim([x_min, 600])  #have more control on the upper x limit
         #plt.ylim([v_min, v_max])
-        plt.ylim([1e-4, v_max])  #have more control on the lower limit
+        #plt.ylim([1e-4, v_max])  #have more control on the lower limit
 
         plt.yscale('log')
 
@@ -2437,7 +2467,7 @@ def plot_feature_maps_for_publication(model, input, data_loader):
     clb_zb_truth.ax.tick_params(labelsize=12)
 
     # plot second feature map
-    f = np.squeeze(np.flip(feature_maps[:, :, :, 3]))
+    f = np.squeeze(np.flip(feature_maps[:, :, :, 2]))
     vmin = f.min()
     vmax = f.max()
 
@@ -2449,7 +2479,7 @@ def plot_feature_maps_for_publication(model, input, data_loader):
     axs[1, 0].tick_params(axis='y', labelsize=14)
     axs[1, 0].set_xlabel('$x$', fontsize=16)
     axs[1, 0].tick_params(axis='x', labelsize=14)
-    axs[1, 0].set_title("Feature map 1", fontsize=16)
+    axs[1, 0].set_title("Feature map 2", fontsize=16)
     axs[1, 0].text(-0.05, 1.1, "(c)", size=16, ha="center", transform=axs[1, 0].transAxes)
     divider = make_axes_locatable(axs[1, 0])
     cax = divider.append_axes("right", size="3%", pad=0.1)
@@ -2461,7 +2491,7 @@ def plot_feature_maps_for_publication(model, input, data_loader):
     vmin = -0.5
     vmax = 0.5
     levels = np.linspace(vmin, vmax, 51)
-    cf_zb_truth = axs[1, 1].contourf(X, Y, zb_intermediate[:,:,1], levels, vmin=vmin, vmax=vmax, cmap=plt.cm.terrain
+    cf_zb_truth = axs[1, 1].contourf(X, Y, zb_intermediate[:,:,19], levels, vmin=vmin, vmax=vmax, cmap=plt.cm.terrain
                                                    )
     axs[1, 1].set_xlim([xl, xh])
     axs[1, 1].set_ylim([yl, yh])
@@ -2470,7 +2500,7 @@ def plot_feature_maps_for_publication(model, input, data_loader):
     axs[1, 1].tick_params(axis='y', labelsize=14)
     axs[1, 1].set_xlabel('$x$ (m)', fontsize=16)
     axs[1, 1].tick_params(axis='x', labelsize=14)
-    axs[1, 1].set_title("Inverted $z_b$ at iteration 1", fontsize=16)
+    axs[1, 1].set_title("Inverted $z_b$ at iteration 20", fontsize=16)
     axs[1, 1].text(-0.05, 1.1, "(d)", size=16, ha="center", transform=axs[1, 1].transAxes)
     divider = make_axes_locatable(axs[1, 1])
     cax = divider.append_axes("right", size="3%", pad=0.1)
@@ -2574,7 +2604,7 @@ def calculate_relative_and_absolute_errors_for_all_test_cases():
     :return:
     """
 
-    with open('varialbes_min_max.json') as json_file:
+    with open('variables_min_max.json') as json_file:
         var_min_max = json.load(json_file)
 
     xl = var_min_max['bounds'][0]
@@ -2593,7 +2623,7 @@ def calculate_relative_and_absolute_errors_for_all_test_cases():
     WSE_max = var_min_max['WSE_max']
 
     #prediction results: (u,v) out of NN_(u,v,WSE)
-    prediction_results = np.load('uvWSE_cases/sampled_64_256/inversion_hyperparameter_cases/inversion_with_uv_only/case_1/prediction_results.npz')
+    prediction_results = np.load('prediction_results.npz')
 
     zb_test_all = scale_back(prediction_results['zb_test_all'], zb_min, zb_max)
 
@@ -2776,6 +2806,61 @@ def calculate_relative_and_absolute_errors_for_all_test_cases():
     print("\\hline")
     print("WSE &", formatted_float_f.format(rmse_WSE_error_mean), " & ", formatted_float_f.format(rmse_WSE_error_max), " & ", formatted_float_e.format(rmse_WSE_error_std), " & ", formatted_float_f.format(rmse_WSE_rel_error_mean*100), " & ", formatted_float_f.format(rmse_WSE_rel_error_max*100), " & ", formatted_float_f.format(rmse_WSE_rel_error_std*100), "\\\\")
 
+def plot_prediction_l2norms_histogram():
+
+    # prediction results: (u,v) out of NN_(u,v,WSE)
+    prediction_results = np.load(
+        'uvWSE_cases/sampled_32_128_3000/prediction_results.npz')
+
+    prediction_l2norms = prediction_results['prediction_l2norms']  #/(32*128)
+
+    #create a pd DataFrame
+    prediction_l2norms_pd = pd.DataFrame(data=prediction_l2norms, columns=['l2norms'])["l2norms"]
+    print(prediction_l2norms_pd.head())
+
+    #dict to store the percentiles
+    prediction_l2norms_percentiles = {}
+
+    q5, q25, q50, q75, q95 = np.percentile(prediction_l2norms, [5, 25, 50, 75, 95])
+    print("q5, q25, q50, q75, q95=", q5, q25, q50, q75, q95)
+
+    prediction_l2norms_percentiles['q5'] = q5
+    prediction_l2norms_percentiles['q25'] = q25
+    prediction_l2norms_percentiles['q50'] = q50
+    prediction_l2norms_percentiles['q75'] = q75
+    prediction_l2norms_percentiles['q95'] = q95
+
+    #save the percentiles to json file
+    with open("uvWSE_cases/sampled_32_128_3000/prediction_l2norms_percentiles.json", "w") as outfile:
+        json.dump(prediction_l2norms_percentiles, outfile)
+
+    bin_width = 2 * (q75 - q25) * len(prediction_l2norms) ** (-1 / 3)
+    bins = round((prediction_l2norms.max() - prediction_l2norms.min()) / bin_width)
+    print("Freedman–Diaconis number of bins:", bins)
+
+    #plt.hist(prediction_l2norms, density=True, bins=bins)
+    sns.histplot(data=prediction_l2norms, bins=bins, log_scale=True, edgecolor='white',
+                 color='gray', alpha=0.2, fill=True, kde=True, line_kws={'color':'k', 'linewidth':1.5, 'alpha':1})
+    #sns.kdeplot(data=prediction_l2norms, color='b', linewidth=1.5)
+
+    # Quantile lines
+    quants = [[q5, 0.6, 0.16], [q50, 1, 0.36], [q95, 0.6, 0.56]]
+
+    for i in quants:
+        plt.axvline(i[0], alpha=i[1], ymax=i[2], color='b', linewidth=2, linestyle=":")
+
+
+    # Annotations
+    plt.text(q5, 4, "5th", size=14, alpha=1)
+    plt.text(q50, 8.1, "50th", size=14, alpha=1)
+    plt.text(q95, 13.1, "95th Percentile", size=14, alpha=1)
+
+    plt.tick_params(axis='both', which='major', labelsize=12)
+    plt.xlabel("Surrogate prediction error L2 norm (only considering $u$ and $v$)", fontsize=14)
+    plt.ylabel("Count", fontsize=14)
+    plt.savefig("surrogate_prediction_l2norm_histogram.png", dpi=300, bbox_inches='tight', pad_inches=0)
+
+    plt.show()
 
 
 def zb_inversion_process_for_publication(config_filename):
@@ -2824,7 +2909,7 @@ def zb_inversion_process_for_publication(config_filename):
 
     vmin = -0.5
     vmax = 0.5
-    levels = np.linspace(vmin, vmax, 51)
+    levels = np.linspace(vmin, vmax, 21)
     levels = scale_back(levels, zb_min, zb_max)
 
     n_rows = zb_intermediate.shape[0]
@@ -2840,10 +2925,10 @@ def zb_inversion_process_for_publication(config_filename):
 
     ite_numbers_for_plot = [[0 for x in range(nPlot_cols)] for y in range(nPlot_rows)]
     ite_numbers_for_plot[0][0] = 0
-    ite_numbers_for_plot[1][0] = 1
-    ite_numbers_for_plot[2][0] = 2
-    ite_numbers_for_plot[3][0] = 10
-    ite_numbers_for_plot[0][1] = 50
+    ite_numbers_for_plot[1][0] = 10
+    ite_numbers_for_plot[2][0] = 50
+    ite_numbers_for_plot[3][0] = 80
+    ite_numbers_for_plot[0][1] = 100
     ite_numbers_for_plot[1][1] = 300
     ite_numbers_for_plot[2][1] = 600
     ite_numbers_for_plot[3][1] = 999
@@ -2878,6 +2963,142 @@ def zb_inversion_process_for_publication(config_filename):
 
     plt.show()
 
+def plot_L_curve(losses_L_curve_file_name):
+    """
+    Plot the L-curve
+
+    :return:
+    """
+
+    #load prediction l2 norm percentiles
+    # Opening JSON file
+    f = open('prediction_l2norms_percentiles.json')
+
+    # returns JSON object as
+    # a dictionary
+    prediction_l2norms_percentiles = json.load(f)
+    q5=prediction_l2norms_percentiles['q5']
+    q50 = prediction_l2norms_percentiles['q50']
+    q95 = prediction_l2norms_percentiles['q95']
+
+
+    losses_L_curve = np.load(losses_L_curve_file_name)
+    alpha_slope = losses_L_curve['alpha_slope']
+    losses_all = losses_L_curve['losses_all']
+
+    loss_prediction = losses_all[:,:,1].squeeze()
+    loss_slope = losses_all[:,:,3].squeeze()
+
+    #loss is summation of error squared. Take squrare root to get L2-norm
+    loss_prediction = np.sqrt(loss_prediction)
+    #loss_slope = np.sqrt(loss_slope)
+
+    plt.plot(loss_prediction.mean(axis=1), loss_slope.mean(axis=1), 'k')
+
+    #all_colors = [k for k, v in plt.cm.Paired.items()]
+    #colors = sample(all_colors, len(alpha_slope))
+
+    np.random.seed(999)
+    colors=np.random.rand(3,len(alpha_slope))
+
+    for i in range(len(alpha_slope)):
+        if i!=1: #hack to remove clutter
+            plt.scatter(loss_prediction.mean(axis=1)[i], loss_slope.mean(axis=1)[i], s=50, facecolors=colors[:,i],
+                edgecolors='k', linewidths=0.5, cmap='Paired')
+
+    #plot all data points as scatters
+    #for i in range(0,len(alpha_slope),4):
+    for i in [0,3,7,9]:
+        plt.scatter(loss_prediction[i,:], loss_slope[i,:], s=30, alpha=0.8, facecolors=colors[:,i],
+                    edgecolors='none', cmap='Paired')
+
+        #plot the confidence ellipse
+        confidence_ellipse(loss_prediction[i,:], loss_slope[i,:], plt.gca(), n_std=2, edgecolor=colors[:,i])
+
+    #add annotate of alpha_slope
+    for i in range(len(alpha_slope)):
+        if i!=1: #hack to reduce clutter
+            plt.annotate("{:.2f}".format(alpha_slope[i]), (loss_prediction.mean(axis=1)[i], loss_slope.mean(axis=1)[i]),
+                     xytext=(3,3), textcoords="offset points", color=colors[:,i], fontsize=12)
+
+    # Quantile lines
+    quants = [[q5, 1, 0.36], [q50, 1, 0.36], [q95, 1, 0.36]]
+
+    for i in quants:
+        plt.axvline(i[0], alpha=i[1], ymax=i[2], color='b', linewidth=2, linestyle=":")
+
+    # Annotations
+    plt.text(q5+0.1e-1, 1e-2, "5th", size=12, alpha=1)
+    plt.text(q50+0.1e-1, 1e-2, "50th", size=12, alpha=1)
+    plt.text(q95+0.1e-1, 1e-2, "95th percentile of \n surrogate prediction\n error L2 norm", size=12, alpha=1)
+
+    plt.tick_params(axis='both', which='major', labelsize=12)
+
+    # plt.title('L-curve')
+    plt.xlabel('Prediction loss norm $L_{prediction}$', fontsize=16)
+    plt.ylabel('Slope loss norm $L_{slope}$', fontsize=16)
+    #plt.xlim([0, 100])
+    plt.ylim([8e-3, 3.2e-2])
+    plt.xscale('log')
+    plt.yscale('log')
+    #plt.ylim([0, 0.01])
+    #plt.legend(loc='upper right', fontsize=14, frameon=False)
+    plt.savefig("L_curve.png", dpi=300, bbox_inches='tight', pad_inches=0)
+    plt.show()
+
+def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
+    """
+    Create a plot of the covariance confidence ellipse of *x* and *y*.
+
+    Reference: https://matplotlib.org/devdocs/gallery/statistics/confidence_ellipse.html
+
+    Parameters
+    ----------
+    x, y : array-like, shape (n, )
+        Input data.
+
+    ax : matplotlib.axes.Axes
+        The axes object to draw the ellipse into.
+
+    n_std : float
+        The number of standard deviations to determine the ellipse's radiuses.
+
+    **kwargs
+        Forwarded to `~matplotlib.patches.Ellipse`
+
+    Returns
+    -------
+    matplotlib.patches.Ellipse
+    """
+    if x.size != y.size:
+        raise ValueError("x and y must be the same size")
+
+    cov = np.cov(x, y)
+    pearson = cov[0, 1]/np.sqrt(cov[0, 0] * cov[1, 1])
+    # Using a special case to obtain the eigenvalues of this
+    # two-dimensionl dataset.
+    ell_radius_x = np.sqrt(1 + pearson)
+    ell_radius_y = np.sqrt(1 - pearson)
+    ellipse = Ellipse((0, 0), width=ell_radius_x * 2, height=ell_radius_y * 2,
+                      facecolor=facecolor, **kwargs)
+
+    # Calculating the stdandard deviation of x from
+    # the squareroot of the variance and multiplying
+    # with the given number of standard deviations.
+    scale_x = np.sqrt(cov[0, 0]) * n_std
+    mean_x = np.mean(x)
+
+    # calculating the stdandard deviation of y ...
+    scale_y = np.sqrt(cov[1, 1]) * n_std
+    mean_y = np.mean(y)
+
+    transf = transforms.Affine2D() \
+        .rotate_deg(45) \
+        .scale(scale_x, scale_y) \
+        .translate(mean_x, mean_y)
+
+    ellipse.set_transform(transf + ax.transData)
+    return ax.add_patch(ellipse)
 
 def test_tf_random_generator():
     g1 = tf.random.Generator.from_seed(1)
@@ -2887,6 +3108,32 @@ def test_tf_random_generator():
     #g2 = tf.random.get_global_generator()
     #print(g2.normal(shape=[2, 3]))
 
+def plot_inversion_beds():
+    #plot beds of inversion cases
+
+    directory = 'uvWSE_cases/sampled_32_128_3000'
+
+    for filename in os.listdir(directory):
+        f = os.path.join(directory, filename)
+
+        # checking if it is a file
+        if os.path.isfile(f) and "inversion_case_uvWSE" in filename:
+            print("plotting inversion bathymetry from fille ", filename)
+
+            inversion_case = np.load(f)
+            zb = inversion_case['zb']
+
+            fig, ax = plt.subplots()
+
+            ax.imshow(zb, cmap=plt.cm.terrain)
+            ax.set_xticks([])
+            ax.set_yticks([])
+
+            split_up = os.path.splitext(filename)
+            file_name = split_up[0]
+            plt.savefig(directory+"/"+file_name+"_bed.png", dpi=300, bbox_inches='tight', pad_inches=0)
+
+
 
 
 if __name__ == '__main__':
@@ -2895,10 +3142,8 @@ if __name__ == '__main__':
 
     #test_tf_random_generator()
 
-    #plot_zb_inversion_loss_components_cnn_structure()
+    #plot_inversion_beds()
 
-    #calculate_relative_and_absolute_errors_for_all_test_cases()
-
-
+    #plot_prediction_l2norms_histogram()
 
     print("Done!")
