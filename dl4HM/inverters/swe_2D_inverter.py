@@ -1,7 +1,6 @@
 from ..base.base_inverter import BaseInverter
 import tensorflow as tf
 import numpy as np
-from tensorflow.keras import backend as kb
 
 from scipy.optimize import minimize
 

@@ -7,12 +7,21 @@
 *dl4HM* - Deep Learning for Hydraulic Modeling
 =======================================================
 
-*dl4HM* is a Python package developed to use deep learning for hydraulic modeling. 
+*dl4HM* is a Python package developed to use deep learning for hydraulic modeling. It is based on TensorFlow 2.
 
-- Build surrogator model to hydraulic models.
+- Build surrogate model to hydraulic models such as SRH-2D and HEC-RAS.
 - Perform inversion, parameter calibration, and optimization. 
 
+Dependencies
+============
+The easiest way to install all dependencies is to use the "environment.yml" file and conda:
 
+.. code-block:: bash
+    $ conda env create --name dl4HM -f environment.yml
+
+which creates an environment named "dl4HM". You can change the name to suit your need.
+
+Some of the pre- and post-processing functionalities involve the control of hydraulic models such as SRH-2D and HEC-RAS. They depend on the *pyHMT2D* (https://github.com/psu-efd/pyHMT2D) package.
 
 License
 -------

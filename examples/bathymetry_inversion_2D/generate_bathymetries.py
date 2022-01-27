@@ -2,15 +2,11 @@
 Generate 2D bathymetry data using Gaussian process (sampled from a prior)
 """
 
-import math
-
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as tick
 import numpy as np
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
 
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, RationalQuadratic, ConstantKernel as C
@@ -18,7 +14,6 @@ from sklearn.gaussian_process.kernels import RBF, RationalQuadratic, ConstantKer
 from scipy import interpolate
 
 import pyvista as pv
-import meshio
 
 import json
 

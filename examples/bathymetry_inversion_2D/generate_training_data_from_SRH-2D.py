@@ -32,12 +32,9 @@ import matplotlib.ticker as tick
 import tensorflow as tf
 from tensorflow.python.ops.numpy_ops import np_config
 
-from glob import glob as glb
-import re
-
 import multiprocessing
 
-from my_module import run_one_SRH_2D_case
+from swe_solvers_module import run_one_SRH_2D_case
 
 
 from pyHMT2D.Hydraulic_Models_Data.SRH_2D import SRH_2D_Data, SRH_2D_Model, SRH_2D_SRHHydro

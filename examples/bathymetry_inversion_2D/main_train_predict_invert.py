@@ -3,7 +3,7 @@
 from comet_ml import Experiment
 
 import sys
-sys.path.append("../../../bathymetry_inversion_2D_GP")  #for execution in terminal
+sys.path.append("../../../bathymetry_inversion_2D")  #for execution in terminal
 #print(sys.path)
 
 import specific_utilities
@@ -18,14 +18,10 @@ from dl4HM.utils.dirs import create_dirs
 from dl4HM.utils.args import get_args
 from dl4HM.utils.misc import print_now_time
 
-from sklearn.metrics import mean_squared_error
-
 import matplotlib.pyplot as plt
 import numpy as np
 
 import tensorflow as tf
-
-import json
 
 plt.rc('text', usetex=True)  #allow the use of Latex for math expressions and equations
 plt.rc('font', family='serif') #specify the default font family to be "serif"
