@@ -17,11 +17,12 @@ Dependencies
 The easiest way to install all dependencies is to use the "environment.yml" file and conda:
 
 .. code-block:: bash
+
     $ conda env create --name dl4HM -f environment.yml
 
 which creates an environment named "dl4HM". You can change the name to suit your need.
 
-Some of the pre- and post-processing functionalities involve the control of hydraulic models such as SRH-2D and HEC-RAS. They depend on the *pyHMT2D* (https://github.com/psu-efd/pyHMT2D) package.
+Some of the pre- and post-processing functionalities involve the control of hydraulic models such as SRH-2D and HEC-RAS. They depend on the *pyHMT2D* (https://github.com/psu-efd/pyHMT2D) package. This is only needed if you want to use the same scripts to generate training data.
 
 License
 -------
