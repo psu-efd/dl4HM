@@ -22,5 +22,6 @@ Other files for training data generation and processing.
     - It needs a JSON configuration file, e.g., "swe_2D_training_data_generation_config".
 - "generate_training_data_from_SRH-2D.py": generates training data (in TensorFlow record format).     
     - It also needs a JSON configuration file, e.g., "swe_2D_training_data_generation_config".
+	- SRH-2D needs to be installed.
 - "specific_utilities.py": utility functions for plotting, postprocessing, etc. 
 - "swe_solvers_module.py": a special Python module to group functions interacting with SWE solvers such as SRH-2D.   
