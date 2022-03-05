@@ -11,8 +11,7 @@ Xiaofeng Liu, Yalan Song, and Chaopeng Shen (2022). Bathymetry Inversion using a
 The main file:
 - "main_train_predict_invert.py": this is the file where the training, prediction, and inversion happen. 
   - It needs a JSON configuration file, e.g, "surrogate_bathymetry_inversion_2D_config_uvWSE.json".
-
-Example training data can be obtained from this link (to be updated once our paper is published). 
+  - It also needs the training, validation, and test datasets (train_uv.tfrecords, validation_uv.tfrecords, test_uv.tfrecords). These files are in TensorFlow Records format. They exceed the size limit set by GitHub. They can be obtained from [CUAHSI Hydroshare](http://www.hydroshare.org/resource/357c3c413622460a91d29cc61d0ba084). 
 
 If you just want to use the example dataset, there is no need to run other Python scripts in this folder. 
 
