@@ -183,23 +183,24 @@ def plot_sample_bathymetries(nrows, ncolumns, bathymetry_inversion_2D_config):
 
 
     clb = fig.colorbar(cf, ticks=np.linspace(zMin, zMax, 11), ax=axs.ravel().tolist())
-    clb.set_label('Elevation (m)', labelpad=0.3, fontsize=24)
+    clb.ax.tick_params(labelsize=16)
+    clb.set_label('Elevation (m)', labelpad=0.3, fontsize=20)
 
     # set labels
     #plt.setp(axs[-1, :], xlabel='x (m)')
     #plt.setp(axs[:, 0], ylabel='y (m)')
 
     #hack for 2x2 plot (for publication)
-    axs[0, 0].set_ylabel('$y$ (m)', fontsize=16)
-    axs[0, 0].tick_params(axis='y', labelsize=14)
+    axs[0, 0].set_ylabel('$y$ (m)', fontsize=18)
+    axs[0, 0].tick_params(axis='y', labelsize=16)
 
-    axs[1, 0].set_xlabel('$x$ (m)', fontsize=16)
-    axs[1, 0].tick_params(axis='x', labelsize=14)
-    axs[1, 0].set_ylabel('$y$ (m)', fontsize=16)
-    axs[1, 0].tick_params(axis='y', labelsize=14)
+    axs[1, 0].set_xlabel('$x$ (m)', fontsize=18)
+    axs[1, 0].tick_params(axis='x', labelsize=16)
+    axs[1, 0].set_ylabel('$y$ (m)', fontsize=18)
+    axs[1, 0].tick_params(axis='y', labelsize=16)
 
-    axs[1, 1].set_xlabel('$x$ (m)', fontsize=16)
-    axs[1, 1].tick_params(axis='x', labelsize=14)
+    axs[1, 1].set_xlabel('$x$ (m)', fontsize=18)
+    axs[1, 1].tick_params(axis='x', labelsize=16)
 
     #plot the lines for profiles (one longitudinal and the other cross section)
     axs[0, 0].plot([0,26],[3.2,3.2], 'k--')
@@ -356,7 +357,7 @@ if __name__ == '__main__':
     #generate_2D_bed(bathymetry_inversion_2D_config)
 
     #plot some sample bed bathymetries to visually check (the first two numbers are rows and columns of subplots)
-    #plot_sample_bathymetries(2, 2, bathymetry_inversion_2D_config)
+    plot_sample_bathymetries(2, 2, bathymetry_inversion_2D_config)
 
     #animate the bathymetry contours
     #animate_bathymetry_contours(bathymetry_inversion_2D_config)

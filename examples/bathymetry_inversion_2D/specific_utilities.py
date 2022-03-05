@@ -72,14 +72,15 @@ def plot_training_validation_losses(training_history_filename):
     plt.tick_params(axis='both', which='major', labelsize=12)
 
     #plt.title('training loss and validation loss')
-    plt.xlabel('Epoch', fontsize=16)
-    plt.ylabel('Loss', fontsize=16)
+    plt.xlabel('Epoch', fontsize=18)
+    plt.ylabel('Loss', fontsize=18)
     plt.xlim([0,100])
     #plt.ylim([1e-5, 1e-2])
     plt.ylim([-0.0001,0.0015])
     #plt.yscale('log')
     #plt.ylim([0, 0.01])
-    plt.legend(loc='upper right', fontsize=14, frameon=False)
+    plt.tick_params(axis='both', labelsize=18)
+    plt.legend(loc='upper right', fontsize=18, frameon=False)
     plt.savefig("training_validtion_losses.png", dpi=300, bbox_inches='tight', pad_inches=0)
     plt.show()
 
@@ -88,11 +89,11 @@ def plot_training_validation_losses(training_history_filename):
 
     #plt.yscale('log')
 
-    plt.tick_params(axis='both', which='major', labelsize=12)
+    plt.tick_params(axis='both', which='major', labelsize=18)
 
     #plt.title('training loss and validation loss')
-    plt.xlabel('Epoch', fontsize=16)
-    plt.ylabel('Learning rate', fontsize=16)
+    plt.xlabel('Epoch', fontsize=20)
+    plt.ylabel('Learning rate', fontsize=20)
     #plt.legend(loc='upper right', fontsize=14, frameon=False)
     plt.savefig("learning_rate_history.png", dpi=300, bbox_inches='tight', pad_inches=0)
     plt.show()
@@ -165,17 +166,17 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
     axs[0, 0].set_xlim([xl, xh])
     axs[0, 0].set_ylim([yl, yh])
     axs[0, 0].set_aspect('equal')
-    axs[0, 0].set_ylabel('$y$ (m)', fontsize=16)
-    axs[0, 0].tick_params(axis='y', labelsize=14)
-    axs[0, 0].set_title("Simulated $u$ from SRH-2D", fontsize=14)
+    axs[0, 0].set_ylabel('$y$ (m)', fontsize=20)
+    axs[0, 0].tick_params(axis='y', labelsize=18)
+    axs[0, 0].set_title("Simulated $u$ from SRH-2D", fontsize=18)
     if bPlot_dimless:
-        clb_vel_x_sim = fig.colorbar(cf_vel_x_sim, ticks=np.linspace(min, max, 7), ax=axs[0, 0])
+        clb_vel_x_sim = fig.colorbar(cf_vel_x_sim, ticks=np.linspace(min, max, 5), ax=axs[0, 0])
     else:
-        clb_vel_x_sim = fig.colorbar(cf_vel_x_sim, ticks=np.linspace(local_levels.min(), local_levels.max(), 7), ax=axs[0, 0])
+        clb_vel_x_sim = fig.colorbar(cf_vel_x_sim, ticks=np.linspace(local_levels.min(), local_levels.max(), 5), ax=axs[0, 0])
     clb_vel_x_sim.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_vel_x_sim.ax.tick_params(labelsize=12)
+    clb_vel_x_sim.ax.tick_params(labelsize=18)
     if not bPlot_dimless:
-        clb_vel_x_sim.ax.set_title("(m/s)", loc='center', fontsize=12)
+        clb_vel_x_sim.ax.set_title("(m/s)", loc='center', fontsize=18)
 
     # plot vel_x (predicted from NN)
     if bPlot_dimless:
@@ -187,16 +188,16 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
     axs[0, 1].set_xlim([xl, xh])
     axs[0, 1].set_ylim([yl, yh])
     axs[0, 1].set_aspect('equal')
-    axs[0, 1].set_title("Predicted $u$ by CNN surrogate", fontsize=14)
+    axs[0, 1].set_title("Predicted $u$ by CNN surrogate", fontsize=18)
     if bPlot_dimless:
-        clb_vel_x_pred = fig.colorbar(cf_vel_x_pred, ticks=np.linspace(min, max, 7), ax=axs[0, 1])
+        clb_vel_x_pred = fig.colorbar(cf_vel_x_pred, ticks=np.linspace(min, max, 5), ax=axs[0, 1])
     else:
-        clb_vel_x_pred = fig.colorbar(cf_vel_x_pred, ticks=np.linspace(local_levels.min(), local_levels.max(), 7), ax=axs[0, 1])
+        clb_vel_x_pred = fig.colorbar(cf_vel_x_pred, ticks=np.linspace(local_levels.min(), local_levels.max(), 5), ax=axs[0, 1])
 
     clb_vel_x_pred.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_vel_x_pred.ax.tick_params(labelsize=12)
+    clb_vel_x_pred.ax.tick_params(labelsize=18)
     if not bPlot_dimless:
-        clb_vel_x_pred.ax.set_title("(m/s)", loc='center', fontsize=12)
+        clb_vel_x_pred.ax.set_title("(m/s)", loc='center', fontsize=18)
 
     # plot diff(vel_x_test - vel_x_pred)
     if bPlot_dimless:
@@ -218,15 +219,15 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
     axs[0, 2].set_ylim([yl, yh])
     axs[0, 2].set_aspect('equal')
     if bPlot_dimless:
-        axs[0, 2].set_title("$u$ differences, $e_m$ = {0:.4f}".format(rmse_vel_x), fontsize=16)
+        axs[0, 2].set_title("$u$ differences, $e_m$ = {0:.4f}".format(rmse_vel_x), fontsize=18)
     else:
-        axs[0, 2].set_title("$u$ differences, $e_m$ = {0:.4f} m/s".format(rmse_vel_x), fontsize=16)
+        axs[0, 2].set_title("$u$ differences, $e_m$ = {0:.4f} m/s".format(rmse_vel_x), fontsize=18)
 
-    clb_vel_x_diff = fig.colorbar(cf_vel_x_diff, ticks=np.linspace(v_min, v_max, 7), ax=axs[0, 2])
+    clb_vel_x_diff = fig.colorbar(cf_vel_x_diff, ticks=np.linspace(v_min, v_max, 5), ax=axs[0, 2])
     clb_vel_x_diff.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.3f'))
-    clb_vel_x_diff.ax.tick_params(labelsize=12)
+    clb_vel_x_diff.ax.tick_params(labelsize=18)
     if not bPlot_dimless:
-        clb_vel_x_diff.ax.set_title("(m/s)", loc='center', fontsize=12)
+        clb_vel_x_diff.ax.set_title("(m/s)", loc='center', fontsize=18)
 
     # plot vel_y (simulated)
     #local_levels = scale_back(levels, vel_y_min, vel_y_max)
@@ -243,20 +244,20 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
     axs[1, 0].set_xlim([xl, xh])
     axs[1, 0].set_ylim([yl, yh])
     axs[1, 0].set_aspect('equal')
-    axs[1, 0].set_ylabel('$y$ (m)', fontsize=16)
-    axs[1, 0].tick_params(axis='y', labelsize=14)
-    axs[1, 0].set_title("Simulated $v$ by SRH-2D", fontsize=14)
+    axs[1, 0].set_ylabel('$y$ (m)', fontsize=20)
+    axs[1, 0].tick_params(axis='y', labelsize=18)
+    axs[1, 0].set_title("Simulated $v$ by SRH-2D", fontsize=18)
 
     if bPlot_dimless:
-        clb_vel_y_sim = fig.colorbar(cf_vel_y_sim, ticks=np.linspace(min, max, 7), ax=axs[1, 0])
+        clb_vel_y_sim = fig.colorbar(cf_vel_y_sim, ticks=np.linspace(min, max, 5), ax=axs[1, 0])
     else:
-        clb_vel_y_sim = fig.colorbar(cf_vel_y_sim, ticks=np.linspace(local_levels.min(), local_levels.max(), 7),
+        clb_vel_y_sim = fig.colorbar(cf_vel_y_sim, ticks=np.linspace(local_levels.min(), local_levels.max(), 5),
                                      ax=axs[1, 0])
 
     clb_vel_y_sim.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_vel_y_sim.ax.tick_params(labelsize=12)
+    clb_vel_y_sim.ax.tick_params(labelsize=16)
     if not bPlot_dimless:
-        clb_vel_y_sim.ax.set_title("(m/s)", loc='center', fontsize=12)
+        clb_vel_y_sim.ax.set_title("(m/s)", loc='center', fontsize=18)
 
     # plot vel_y (predicted from NN)
     if bPlot_dimless:
@@ -269,17 +270,17 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
     axs[1, 1].set_xlim([xl, xh])
     axs[1, 1].set_ylim([yl, yh])
     axs[1, 1].set_aspect('equal')
-    axs[1, 1].set_title("Predicted $v$ by CNN surrogate", fontsize=14)
+    axs[1, 1].set_title("Predicted $v$ by CNN surrogate", fontsize=18)
     if bPlot_dimless:
-        clb_vel_y_pred = fig.colorbar(cf_vel_y_pred, ticks=np.linspace(min, max, 7), ax=axs[1, 1])
+        clb_vel_y_pred = fig.colorbar(cf_vel_y_pred, ticks=np.linspace(min, max, 5), ax=axs[1, 1])
     else:
-        clb_vel_y_pred = fig.colorbar(cf_vel_y_pred, ticks=np.linspace(local_levels.min(), local_levels.max(), 7),
+        clb_vel_y_pred = fig.colorbar(cf_vel_y_pred, ticks=np.linspace(local_levels.min(), local_levels.max(), 5),
                                      ax=axs[1, 1])
 
     clb_vel_y_pred.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_vel_y_pred.ax.tick_params(labelsize=12)
+    clb_vel_y_pred.ax.tick_params(labelsize=18)
     if not bPlot_dimless:
-        clb_vel_y_pred.ax.set_title("(m/s)", loc='center', fontsize=12)
+        clb_vel_y_pred.ax.set_title("(m/s)", loc='center', fontsize=18)
 
     # plot diff(vel_y_test - vel_y_pred)
     vel_y_diff = np.squeeze(vel_WSE_pred[:, :, :, 1]) - np.squeeze(vel_WSE_test[:, :, 1])
@@ -303,15 +304,15 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
     axs[1, 2].set_aspect('equal')
 
     if bPlot_dimless:
-        axs[1, 2].set_title("$v$ differences, $e_m$ = {0:.4f}".format(rmse_vel_y), fontsize=16)
+        axs[1, 2].set_title("$v$ differences, $e_m$ = {0:.4f}".format(rmse_vel_y), fontsize=18)
     else:
-        axs[1, 2].set_title("$v$ differences, $e_m$ = {0:.4f} m/s".format(rmse_vel_y), fontsize=16)
+        axs[1, 2].set_title("$v$ differences, $e_m$ = {0:.4f} m/s".format(rmse_vel_y), fontsize=18)
 
-    clb_vel_y_diff = fig.colorbar(cf_vel_y_diff, ticks=np.linspace(v_min, v_max, 7), ax=axs[1, 2])
+    clb_vel_y_diff = fig.colorbar(cf_vel_y_diff, ticks=np.linspace(v_min, v_max, 5), ax=axs[1, 2])
     clb_vel_y_diff.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.3f'))
-    clb_vel_y_diff.ax.tick_params(labelsize=12)
+    clb_vel_y_diff.ax.tick_params(labelsize=18)
     if not bPlot_dimless:
-        clb_vel_y_diff.ax.set_title("(m/s)", loc='center', fontsize=12)
+        clb_vel_y_diff.ax.set_title("(m/s)", loc='center', fontsize=18)
 
     # plot WSE (simulated)
     if b_uv_only:
@@ -332,14 +333,14 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
     axs[2, 0].set_xlim([xl, xh])
     axs[2, 0].set_ylim([yl, yh])
     axs[2, 0].set_aspect('equal')
-    axs[2, 0].set_xlabel('$x$ (m)', fontsize = 16)
-    axs[2, 0].set_ylabel('$y$ (m)', fontsize=16)
-    axs[2, 0].tick_params(axis='x', labelsize=14)
-    axs[2, 0].tick_params(axis='y', labelsize=14)
+    axs[2, 0].set_xlabel('$x$ (m)', fontsize = 20)
+    axs[2, 0].set_ylabel('$y$ (m)', fontsize=20)
+    axs[2, 0].tick_params(axis='x', labelsize=18)
+    axs[2, 0].tick_params(axis='y', labelsize=18)
     if b_uv_only:
-        axs[2, 0].set_title("WSE (zeros, not in dataset)", fontsize=14)
+        axs[2, 0].set_title("WSE (zeros, not in dataset)", fontsize=18)
     else:
-        axs[2, 0].set_title("Simulated WSE from SRH-2D", fontsize=14)
+        axs[2, 0].set_title("Simulated WSE from SRH-2D", fontsize=18)
 
     if bPlot_dimless:
         clb_WSE_sim = fig.colorbar(cf_WSE_sim, ticks=np.linspace(min, max, 5), ax=axs[2, 0])
@@ -348,9 +349,9 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
                                      ax=axs[2, 0])
 
     clb_WSE_sim.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.3f'))
-    clb_WSE_sim.ax.tick_params(labelsize=12)
+    clb_WSE_sim.ax.tick_params(labelsize=18)
     if not bPlot_dimless:
-        clb_WSE_sim.ax.set_title("(m)", loc='center', fontsize=12)
+        clb_WSE_sim.ax.set_title("(m)", loc='center', fontsize=18)
 
     # plot WSE (predicted from NN)
     if b_uv_only:
@@ -367,12 +368,12 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
     axs[2, 1].set_xlim([xl, xh])
     axs[2, 1].set_ylim([yl, yh])
     axs[2, 1].set_aspect('equal')
-    axs[2, 1].set_xlabel('$x$ (m)', fontsize=16)
-    axs[2, 1].tick_params(axis='x', labelsize=14)
+    axs[2, 1].set_xlabel('$x$ (m)', fontsize=20)
+    axs[2, 1].tick_params(axis='x', labelsize=18)
     if b_uv_only:
-        axs[2, 1].set_title("WSE (zeros, not in dataset)", fontsize=14)
+        axs[2, 1].set_title("WSE (zeros, not in dataset)", fontsize=18)
     else:
-        axs[2, 1].set_title("Predicted WSE from CNN surrogate", fontsize=14)
+        axs[2, 1].set_title("Predicted WSE from CNN surrogate", fontsize=18)
 
     if bPlot_dimless:
         clb_WSE_pred = fig.colorbar(cf_WSE_pred, ticks=np.linspace(min, max, 5), ax=axs[2, 1])
@@ -381,9 +382,9 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
                                      ax=axs[2, 1])
 
     clb_WSE_pred.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.3f'))
-    clb_WSE_pred.ax.tick_params(labelsize=12)
+    clb_WSE_pred.ax.tick_params(labelsize=18)
     if not bPlot_dimless:
-        clb_WSE_pred.ax.set_title("(m)", loc='center', fontsize=12)
+        clb_WSE_pred.ax.set_title("(m)", loc='center', fontsize=18)
 
     # plot diff(WSE_test - WSE_pred)
     if b_uv_only:
@@ -410,26 +411,26 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
     axs[2, 2].set_xlim([xl, xh])
     axs[2, 2].set_ylim([yl, yh])
     axs[2, 2].set_aspect('equal')
-    axs[2, 2].set_xlabel('$x$ (m)', fontsize=16)
-    axs[2, 2].tick_params(axis='x', labelsize=14)
+    axs[2, 2].set_xlabel('$x$ (m)', fontsize=20)
+    axs[2, 2].tick_params(axis='x', labelsize=18)
 
     if b_uv_only:
-        axs[2, 2].set_title("WSE differences (zeros, not in dataset)", fontsize=14)
+        axs[2, 2].set_title("WSE differences (zeros, not in dataset)", fontsize=18)
     else:
 
         if bPlot_dimless:
-            axs[2, 2].set_title("WSE differences, $e_m$ = {0:.4f}".format(rmse_WSE), fontsize=16)
+            axs[2, 2].set_title("WSE differences, $e_m$ = {0:.4f}".format(rmse_WSE), fontsize=18)
         else:
-            axs[2, 2].set_title("WSE differences, $e_m$ = {0:.4f} m".format(rmse_WSE), fontsize=16)
+            axs[2, 2].set_title("WSE differences, $e_m$ = {0:.4f} m".format(rmse_WSE), fontsize=18)
 
     if b_uv_only:
-        clb_WSE_diff = fig.colorbar(cf_WSE_diff, ticks=np.linspace(min, max, 7), ax=axs[2, 2])
+        clb_WSE_diff = fig.colorbar(cf_WSE_diff, ticks=np.linspace(min, max, 5), ax=axs[2, 2])
     else:
-        clb_WSE_diff = fig.colorbar(cf_WSE_diff, ticks=np.linspace(v_min, v_max, 7), ax=axs[2, 2])
+        clb_WSE_diff = fig.colorbar(cf_WSE_diff, ticks=np.linspace(v_min, v_max, 5), ax=axs[2, 2])
     clb_WSE_diff.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.4f'))
-    clb_WSE_diff.ax.tick_params(labelsize=12)
+    clb_WSE_diff.ax.tick_params(labelsize=18)
     if not bPlot_dimless:
-        clb_WSE_diff.ax.set_title("(m)", loc='center', fontsize=12)
+        clb_WSE_diff.ax.set_title("(m)", loc='center', fontsize=18)
 
     if bPlot_zb:
         # plot zb
@@ -438,7 +439,7 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
         axs[3, 0].set_ylim([yl, yh])
         axs[3, 0].set_aspect('equal')
         axs[3, 0].set_title("zb", fontsize=14)
-        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 7), ax=axs[3, 0])
+        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 5), ax=axs[3, 0])
         clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
         clb_zb.ax.tick_params(labelsize=12)
 
@@ -447,7 +448,7 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
         axs[3, 1].set_ylim([yl, yh])
         axs[3, 1].set_aspect('equal')
         axs[3, 1].set_title("zb", fontsize=14)
-        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 7), ax=axs[3, 1])
+        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 5), ax=axs[3, 1])
         clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
         clb_zb.ax.tick_params(labelsize=12)
 
@@ -456,7 +457,7 @@ def plot_one_prediction(ID, b_uv_only, vel_WSE_pred, vel_WSE_test, zb_test, var_
         axs[3, 2].set_ylim([yl, yh])
         axs[3, 2].set_aspect('equal')
         axs[3, 2].set_title("zb", fontsize=14)
-        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 7), ax=axs[3, 2])
+        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 5), ax=axs[3, 2])
         clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
         clb_zb.ax.tick_params(labelsize=12)
 
@@ -542,19 +543,19 @@ def plot_zb_inversion_result(zb_inverted_result_filename, config_filename, bPlot
     axs[0,0].set_xlim([xl, xh])
     axs[0,0].set_ylim([yl, yh])
     axs[0,0].set_aspect('equal')
-    axs[0, 0].set_ylabel('$y$ (m)', fontsize=16)
-    axs[0, 0].tick_params(axis='y', labelsize=14)
-    axs[0,0].set_title("$z_b$ (truth)", fontsize=16)
+    axs[0, 0].set_ylabel('$y$ (m)', fontsize=20)
+    axs[0, 0].tick_params(axis='y', labelsize=18)
+    axs[0,0].set_title("$z_b$ (truth)", fontsize=20)
     divider = make_axes_locatable(axs[0,0])
     cax = divider.append_axes("right", size="3%", pad=0.1)
 
     if bPlot_dimless:
-        clb_zb_truth = fig.colorbar(cf_zb_truth, ticks=np.linspace(min, max, 7), cax=cax)
+        clb_zb_truth = fig.colorbar(cf_zb_truth, ticks=np.linspace(min, max, 5), cax=cax)
     else:
-        clb_zb_truth = fig.colorbar(cf_zb_truth, ticks=np.linspace(zb_min, zb_max, 7), cax=cax)
+        clb_zb_truth = fig.colorbar(cf_zb_truth, ticks=np.linspace(zb_min, zb_max, 5), cax=cax)
 
     clb_zb_truth.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_zb_truth.ax.tick_params(labelsize=12)
+    clb_zb_truth.ax.tick_params(labelsize=18)
     if not bPlot_dimless:
         clb_zb_truth.ax.set_title("(m)", loc='center', fontsize=12)
 
@@ -569,19 +570,19 @@ def plot_zb_inversion_result(zb_inverted_result_filename, config_filename, bPlot
     axs[0,1].set_xlim([xl, xh])
     axs[0,1].set_ylim([yl, yh])
     axs[0,1].set_aspect('equal')
-    axs[0,1].set_title("Inverted $z_b$ (mean)", fontsize=16)
+    axs[0,1].set_title("Inverted $z_b$ (mean)", fontsize=20)
     divider = make_axes_locatable(axs[0,1])
     cax = divider.append_axes("right", size="3%", pad=0.1)
 
     if bPlot_dimless:
-        clb_zb_inverted = fig.colorbar(cf_zb_inverted, ticks=np.linspace(min, max, 7), cax=cax)
+        clb_zb_inverted = fig.colorbar(cf_zb_inverted, ticks=np.linspace(min, max, 5), cax=cax)
     else:
-        clb_zb_inverted = fig.colorbar(cf_zb_inverted, ticks=np.linspace(zb_min, zb_max, 7), cax=cax)
+        clb_zb_inverted = fig.colorbar(cf_zb_inverted, ticks=np.linspace(zb_min, zb_max, 5), cax=cax)
 
     clb_zb_inverted.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_zb_inverted.ax.tick_params(labelsize=12)
+    clb_zb_inverted.ax.tick_params(labelsize=18)
     if not bPlot_dimless:
-        clb_zb_inverted.ax.set_title("(m)", loc='center', fontsize=12)
+        clb_zb_inverted.ax.set_title("(m)", loc='center', fontsize=18)
 
     # plot diff(zb_truth - zb_inverted)
     if bPlot_dimless:
@@ -612,9 +613,9 @@ def plot_zb_inversion_result(zb_inverted_result_filename, config_filename, bPlot
     axs[0,2].set_aspect('equal')
 
     if bPlot_dimless:
-        axs[0,2].set_title("$z_b$ differences, $e_m$ = {0:.4f}".format(rmse_zb), fontsize=16)
+        axs[0,2].set_title("$z_b$ differences, $e_m$ = {0:.4f}".format(rmse_zb), fontsize=20)
     else:
-        axs[0, 2].set_title("$z_b$ differences, $e_m$ = {0:.4f} m".format(rmse_zb), fontsize=16)
+        axs[0, 2].set_title("$z_b$ differences, $e_m$ = {0:.4f} m".format(rmse_zb), fontsize=20)
 
     divider = make_axes_locatable(axs[0,2])
     cax = divider.append_axes("right", size="3%", pad=0.1)
@@ -622,13 +623,13 @@ def plot_zb_inversion_result(zb_inverted_result_filename, config_filename, bPlot
     if bPlot_dimless:
         clb_zb_diff = fig.colorbar(cf_zb_diff, ticks=np.linspace(min, max, 5), cax=cax)
     else:
-        clb_zb_diff = fig.colorbar(cf_zb_diff, ticks=np.linspace(zb_min, zb_max, 7), cax=cax)
+        clb_zb_diff = fig.colorbar(cf_zb_diff, ticks=np.linspace(zb_min, zb_max, 5), cax=cax)
 
     clb_zb_diff.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_zb_diff.ax.tick_params(labelsize=12)
+    clb_zb_diff.ax.tick_params(labelsize=18)
     #clb_zb_diff.ax.set_yticklabels(["{:4.3f}".format(i) for i in (np.linspace(min, max, 5))])  # add the labels
     if not bPlot_dimless:
-        clb_zb_diff.ax.set_title("(m)", loc='center', fontsize=12)
+        clb_zb_diff.ax.set_title("(m)", loc='center', fontsize=18)
 
     #plot each of the samples
     for i in range(nSamples):
@@ -642,24 +643,24 @@ def plot_zb_inversion_result(zb_inverted_result_filename, config_filename, bPlot
         axs[i+1, 0].set_xlim([xl, xh])
         axs[i+1, 0].set_ylim([yl, yh])
         axs[i+1, 0].set_aspect('equal')
-        axs[i+1, 0].set_ylabel('$y$ (m)', fontsize=16)
-        axs[i+1, 0].tick_params(axis='y', labelsize=14)
+        axs[i+1, 0].set_ylabel('$y$ (m)', fontsize=20)
+        axs[i+1, 0].tick_params(axis='y', labelsize=18)
 
         if i == (nSamples-1): #last row; add x-label
-            axs[i + 1, 0].set_xlabel('$x$ (m)', fontsize=16)
-            axs[i + 1, 0].tick_params(axis='x', labelsize=14)
+            axs[i + 1, 0].set_xlabel('$x$ (m)', fontsize=20)
+            axs[i + 1, 0].tick_params(axis='x', labelsize=18)
 
-        axs[i+1, 0].set_title("Initial $z_b$: "+str(i), fontsize=16)
+        axs[i+1, 0].set_title("Initial $z_b$: "+str(i), fontsize=20)
         divider = make_axes_locatable(axs[i+1, 0])
         cax = divider.append_axes("right", size="3%", pad=0.1)
         if bPlot_dimless:
-            clb_zb_truth = fig.colorbar(cf_zb_truth, ticks=np.linspace(min, max, 7), cax=cax)
+            clb_zb_truth = fig.colorbar(cf_zb_truth, ticks=np.linspace(min, max, 5), cax=cax)
         else:
-            clb_zb_truth = fig.colorbar(cf_zb_truth, ticks=np.linspace(zb_min, zb_max, 7), cax=cax)
+            clb_zb_truth = fig.colorbar(cf_zb_truth, ticks=np.linspace(zb_min, zb_max, 5), cax=cax)
         clb_zb_truth.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-        clb_zb_truth.ax.tick_params(labelsize=12)
+        clb_zb_truth.ax.tick_params(labelsize=18)
         if not bPlot_dimless:
-            clb_zb_truth.ax.set_title("(m)", loc='center', fontsize=12)
+            clb_zb_truth.ax.set_title("(m)", loc='center', fontsize=18)
 
         # plot zb_inverted
         v_min = zb_inverted_all[:,:,i].min()
@@ -680,23 +681,23 @@ def plot_zb_inversion_result(zb_inverted_result_filename, config_filename, bPlot
         axs[i+1, 1].set_aspect('equal')
 
         if i == (nSamples-1): #last row; add x-label
-            axs[i + 1, 1].set_xlabel('$x$ (m)', fontsize=16)
-            axs[i + 1, 1].tick_params(axis='x', labelsize=14)
+            axs[i + 1, 1].set_xlabel('$x$ (m)', fontsize=20)
+            axs[i + 1, 1].tick_params(axis='x', labelsize=18)
 
-        axs[i+1, 1].set_title("Inverted $z_b$: "+str(i), fontsize=16)
+        axs[i+1, 1].set_title("Inverted $z_b$: "+str(i), fontsize=20)
         divider = make_axes_locatable(axs[i+1, 1])
         cax = divider.append_axes("right", size="3%", pad=0.1)
 
         if bPlot_dimless:
-            clb_zb_inverted = fig.colorbar(cf_zb_inverted, ticks=np.linspace(min, max, 7), cax=cax)
+            clb_zb_inverted = fig.colorbar(cf_zb_inverted, ticks=np.linspace(min, max, 5), cax=cax)
         else:
-            clb_zb_inverted = fig.colorbar(cf_zb_inverted, ticks=np.linspace(zb_min, zb_max, 7), cax=cax)
+            clb_zb_inverted = fig.colorbar(cf_zb_inverted, ticks=np.linspace(zb_min, zb_max, 5), cax=cax)
 
 
         clb_zb_inverted.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-        clb_zb_inverted.ax.tick_params(labelsize=12)
+        clb_zb_inverted.ax.tick_params(labelsize=18)
         if not bPlot_dimless:
-            clb_zb_inverted.ax.set_title("(m)", loc='center', fontsize=12)
+            clb_zb_inverted.ax.set_title("(m)", loc='center', fontsize=18)
 
         # plot diff(zb_truth - zb_inverted)
         if bPlot_dimless:
@@ -723,25 +724,25 @@ def plot_zb_inversion_result(zb_inverted_result_filename, config_filename, bPlot
         axs[i+1, 2].set_aspect('equal')
 
         if i == (nSamples-1): #last row; add x-label
-            axs[i + 1, 2].set_xlabel('$x$ (m)', fontsize=16)
-            axs[i + 1, 2].tick_params(axis='x', labelsize=14)
+            axs[i + 1, 2].set_xlabel('$x$ (m)', fontsize=20)
+            axs[i + 1, 2].tick_params(axis='x', labelsize=18)
 
         if bPlot_dimless:
-            axs[i+1, 2].set_title("$z_b$ differences, $e_m$ = {0:.4f}".format(rmse_zb), fontsize=16)
+            axs[i+1, 2].set_title("$z_b$ differences, $e_m$ = {0:.4f}".format(rmse_zb), fontsize=20)
         else:
-            axs[i + 1, 2].set_title("$z_b$ differences, $e_m$ = {0:.4f} m".format(rmse_zb), fontsize=16)
+            axs[i + 1, 2].set_title("$z_b$ differences, $e_m$ = {0:.4f} m".format(rmse_zb), fontsize=20)
 
         divider = make_axes_locatable(axs[i+1, 2])
         cax = divider.append_axes("right", size="3%", pad=0.1)
         if bPlot_dimless:
             clb_zb_diff = fig.colorbar(cf_zb_diff, ticks=np.linspace(min, max, 5), cax=cax)
         else:
-            clb_zb_diff = fig.colorbar(cf_zb_diff, ticks=np.linspace(zb_min, zb_max, 7), cax=cax)
+            clb_zb_diff = fig.colorbar(cf_zb_diff, ticks=np.linspace(zb_min, zb_max, 5), cax=cax)
 
         clb_zb_diff.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-        clb_zb_diff.ax.tick_params(labelsize=12)
+        clb_zb_diff.ax.tick_params(labelsize=18)
         if not bPlot_dimless:
-            clb_zb_diff.ax.set_title("(m)", loc='center', fontsize=12)
+            clb_zb_diff.ax.set_title("(m)", loc='center', fontsize=18)
 
     plt.savefig("zb_inversion"+inversion_case_name+".png", dpi=300, bbox_inches='tight',
                 pad_inches=0)
@@ -822,28 +823,28 @@ def plot_zb_inversion_result_profiles(zb_inverted_result_filename, config_filena
     axs[0].set_xlim([xl, xh])
     axs[0].set_ylim([-0.5, 0.5])
     #axs[].set_aspect('equal')
-    axs[0].set_xlabel('$x$ (m)', fontsize=16)
-    axs[0].tick_params(axis='x', labelsize=14)
-    axs[0].set_ylabel('$z_b$ (m)', fontsize=16)
-    axs[0].tick_params(axis='y', labelsize=14)
+    axs[0].set_xlabel('$x$ (m)', fontsize=18)
+    axs[0].tick_params(axis='x', labelsize=16)
+    axs[0].set_ylabel('$z_b$ (m)', fontsize=18)
+    axs[0].tick_params(axis='y', labelsize=16)
     axs[0].set_yticks(np.linspace(-0.5,0.5,5))
 
     # plot cross-sectional profiles
     axs[1].set_xlim([yl, yh])
     axs[1].set_ylim([-0.5, 0.5])
     # axs[1].set_aspect('equal')
-    axs[1].set_xlabel('$y$ (m)', fontsize=16)
-    axs[1].tick_params(axis='x', labelsize=14)
-    axs[1].set_ylabel('$z_b$ (m)', fontsize=16)
-    axs[1].tick_params(axis='y', labelsize=14)
+    axs[1].set_xlabel('$y$ (m)', fontsize=18)
+    axs[1].tick_params(axis='x', labelsize=16)
+    axs[1].set_ylabel('$z_b$ (m)', fontsize=18)
+    axs[1].tick_params(axis='y', labelsize=16)
     axs[1].set_yticks(np.linspace(-0.5, 0.5, 5))
 
     #add caption
     #axs[0].text(0.5, -0.35, "(a)", size=16, ha="center", transform=axs[0].transAxes)  #bottom center
     #axs[1].text(0.5, -0.35, "(b)", size=16, ha="center", transform=axs[1].transAxes)
 
-    axs[0].text(-0.1, 1.05, "(a)", size=16, ha="center", transform=axs[0].transAxes)   #upper left
-    axs[1].text(-0.1, 1.05, "(b)", size=16, ha="center", transform=axs[1].transAxes)
+    axs[0].text(-0.1, 1.05, "(a)", size=20, ha="center", transform=axs[0].transAxes)   #upper left
+    axs[1].text(-0.1, 1.05, "(b)", size=20, ha="center", transform=axs[1].transAxes)
 
     #plot each of the samples + 1 truth + 1 mean
     for i in range(nSamples+2):
@@ -1267,25 +1268,25 @@ def plot_zb_inversion_regularization_effects(config_filename, bPlot_dimless=Fals
     axs[0, 0].set_xlim([xl, xh])
     axs[0, 0].set_ylim([yl, yh])
     axs[0, 0].set_aspect('equal')
-    axs[0, 0].set_xlabel('$x$ (m)', fontsize=16)
-    axs[0, 0].tick_params(axis='x', labelsize=14)
-    axs[0, 0].set_ylabel('$y$ (m)', fontsize=16)
-    axs[0, 0].tick_params(axis='y', labelsize=14)
+    axs[0, 0].set_xlabel('$x$ (m)', fontsize=18)
+    axs[0, 0].tick_params(axis='x', labelsize=16)
+    axs[0, 0].set_ylabel('$y$ (m)', fontsize=18)
+    axs[0, 0].tick_params(axis='y', labelsize=16)
     if bPlot_dimless:
-        axs[0, 0].set_title("both regularizations, $e_m$ = {0:.2f}".format(rmse_all_reg), fontsize=16)
+        axs[0, 0].set_title("both regularizations, $e_m$ = {0:.2f}".format(rmse_all_reg), fontsize=18)
     else:
-        axs[0, 0].set_title("both regularizations, $e_m$ = {0:.2f} m".format(rmse_all_reg), fontsize=16)
+        axs[0, 0].set_title("both regularizations, $e_m$ = {0:.2f} m".format(rmse_all_reg), fontsize=18)
 
     divider = make_axes_locatable(axs[0, 0])
     cax = divider.append_axes("right", size="3%", pad=0.1)
     if bPlot_dimless:
-        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 7), cax=cax)
+        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 5), cax=cax)
     else:
-        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(zb_min, zb_max, 7), cax=cax)
+        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(zb_min, zb_max, 5), cax=cax)
     clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_zb.ax.tick_params(labelsize=12)
+    clb_zb.ax.tick_params(labelsize=16)
     if not bPlot_dimless:
-        clb_zb.ax.set_title("(m)", loc='center', fontsize=12)
+        clb_zb.ax.set_title("(m)", loc='center', fontsize=16)
 
     # plot zb_inverted with slope, but not value regularization
     v_min = zb_inverted_all_no_value_reg[:, :, 0].min()
@@ -1303,26 +1304,26 @@ def plot_zb_inversion_regularization_effects(config_filename, bPlot_dimless=Fals
     axs[0, 1].set_xlim([xl, xh])
     axs[0, 1].set_ylim([yl, yh])
     axs[0, 1].set_aspect('equal')
-    axs[0, 1].set_xlabel('$x$ (m)', fontsize=16)
-    axs[0, 1].tick_params(axis='x', labelsize=14)
-    axs[0, 1].set_ylabel('$y$ (m)', fontsize=16)
-    axs[0, 1].tick_params(axis='y', labelsize=14)
+    axs[0, 1].set_xlabel('$x$ (m)', fontsize=18)
+    axs[0, 1].tick_params(axis='x', labelsize=16)
+    axs[0, 1].set_ylabel('$y$ (m)', fontsize=18)
+    axs[0, 1].tick_params(axis='y', labelsize=16)
 
     if bPlot_dimless:
-        axs[0, 1].set_title("slope regularization only, $e_m$ = {0:.2f}".format(rmse_no_value_reg), fontsize=16)
+        axs[0, 1].set_title("slope regularization only, $e_m$ = {0:.2f}".format(rmse_no_value_reg), fontsize=18)
     else:
-        axs[0, 1].set_title("slope regularization only, $e_m$ = {0:.2f} m".format(rmse_no_value_reg), fontsize=16)
+        axs[0, 1].set_title("slope regularization only, $e_m$ = {0:.2f} m".format(rmse_no_value_reg), fontsize=18)
 
     divider = make_axes_locatable(axs[0, 1])
     cax = divider.append_axes("right", size="3%", pad=0.1)
     if bPlot_dimless:
-        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(v_min, v_max, 7), cax=cax)
+        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(v_min, v_max, 5), cax=cax)
     else:
-        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(zb_min, zb_max, 7), cax=cax)
+        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(zb_min, zb_max, 5), cax=cax)
     clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_zb.ax.tick_params(labelsize=12)
+    clb_zb.ax.tick_params(labelsize=16)
     if not bPlot_dimless:
-        clb_zb.ax.set_title("(m)", loc='center', fontsize=12)
+        clb_zb.ax.set_title("(m)", loc='center', fontsize=16)
 
     # plot zb_inverted with value, but not slope regularization
     v_min = zb_inverted_all_no_slope_reg[:, :, 0].min()
@@ -1340,24 +1341,24 @@ def plot_zb_inversion_regularization_effects(config_filename, bPlot_dimless=Fals
     axs[1, 0].set_xlim([xl, xh])
     axs[1, 0].set_ylim([yl, yh])
     axs[1, 0].set_aspect('equal')
-    axs[1, 0].set_xlabel('$x$ (m)', fontsize=16)
-    axs[1, 0].tick_params(axis='x', labelsize=14)
-    axs[1, 0].set_ylabel('$y$ (m)', fontsize=16)
-    axs[1, 0].tick_params(axis='y', labelsize=14)
+    axs[1, 0].set_xlabel('$x$ (m)', fontsize=18)
+    axs[1, 0].tick_params(axis='x', labelsize=16)
+    axs[1, 0].set_ylabel('$y$ (m)', fontsize=18)
+    axs[1, 0].tick_params(axis='y', labelsize=16)
     if bPlot_dimless:
-        axs[1, 0].set_title("value regularization only, $e_m$ = {0:.2f}".format(rmse_no_slope_reg), fontsize=16)
+        axs[1, 0].set_title("value regularization only, $e_m$ = {0:.2f}".format(rmse_no_slope_reg), fontsize=18)
     else:
-        axs[1, 0].set_title("value regularization only, $e_m$ = {0:.2f} m".format(rmse_no_slope_reg), fontsize=16)
+        axs[1, 0].set_title("value regularization only, $e_m$ = {0:.2f} m".format(rmse_no_slope_reg), fontsize=18)
     divider = make_axes_locatable(axs[1, 0])
     cax = divider.append_axes("right", size="3%", pad=0.1)
     if bPlot_dimless:
-        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(v_min, v_max, 7), cax=cax)
+        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(v_min, v_max, 5), cax=cax)
     else:
-        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(zb_min, zb_max, 7), cax=cax)
+        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(zb_min, zb_max, 5), cax=cax)
     clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_zb.ax.tick_params(labelsize=12)
+    clb_zb.ax.tick_params(labelsize=16)
     if not bPlot_dimless:
-        clb_zb.ax.set_title("(m)", loc='center', fontsize=12)
+        clb_zb.ax.set_title("(m)", loc='center', fontsize=16)
 
     # plot zb_inverted with no regularization
     v_min = zb_inverted_all_no_reg[:, :, 0].min()
@@ -1376,33 +1377,33 @@ def plot_zb_inversion_regularization_effects(config_filename, bPlot_dimless=Fals
     axs[1, 1].set_xlim([xl, xh])
     axs[1, 1].set_ylim([yl, yh])
     axs[1, 1].set_aspect('equal')
-    axs[1, 1].set_xlabel('$x$ (m)', fontsize=16)
-    axs[1, 1].tick_params(axis='x', labelsize=14)
-    axs[1, 1].set_ylabel('$y$ (m)', fontsize=16)
-    axs[1, 1].tick_params(axis='y', labelsize=14)
+    axs[1, 1].set_xlabel('$x$ (m)', fontsize=18)
+    axs[1, 1].tick_params(axis='x', labelsize=16)
+    axs[1, 1].set_ylabel('$y$ (m)', fontsize=18)
+    axs[1, 1].tick_params(axis='y', labelsize=16)
     if bPlot_dimless:
-        axs[1, 1].set_title("no regularization, $e_m$ = {0:.2f}".format(rmse_no_reg), fontsize=16)
+        axs[1, 1].set_title("no regularization, $e_m$ = {0:.2f}".format(rmse_no_reg), fontsize=18)
     else:
-        axs[1, 1].set_title("no regularization, $e_m$ = {0:.2f} m".format(rmse_no_reg), fontsize=16)
+        axs[1, 1].set_title("no regularization, $e_m$ = {0:.2f} m".format(rmse_no_reg), fontsize=18)
     divider = make_axes_locatable(axs[1, 1])
     cax = divider.append_axes("right", size="3%", pad=0.1)
     if bPlot_dimless:
-        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(v_min, v_max, 7), cax=cax)
+        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(v_min, v_max, 5), cax=cax)
     else:
-        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(zb_min, zb_max, 7), cax=cax)
+        clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(zb_min, zb_max, 5), cax=cax)
     clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_zb.ax.tick_params(labelsize=12)
+    clb_zb.ax.tick_params(labelsize=16)
     if not bPlot_dimless:
-        clb_zb.ax.set_title("(m)", loc='center', fontsize=12)
+        clb_zb.ax.set_title("(m)", loc='center', fontsize=16)
 
     #add caption
     #axs[0].text(0.5, -0.35, "(a)", size=16, ha="center", transform=axs[0].transAxes)  #bottom center
     #axs[1].text(0.5, -0.35, "(b)", size=16, ha="center", transform=axs[1].transAxes)
 
-    axs[0,0].text(-0.1, 1.05, "(a)", size=16, ha="center", transform=axs[0,0].transAxes)   #upper left
-    axs[0,1].text(-0.1, 1.05, "(b)", size=16, ha="center", transform=axs[0,1].transAxes)
-    axs[1,0].text(-0.1, 1.05, "(c)", size=16, ha="center", transform=axs[1,0].transAxes)
-    axs[1,1].text(-0.1, 1.05, "(d)", size=16, ha="center", transform=axs[1,1].transAxes)
+    axs[0,0].text(-0.1, 1.05, "(a)", size=18, ha="center", transform=axs[0,0].transAxes)   #upper left
+    axs[0,1].text(-0.1, 1.05, "(b)", size=18, ha="center", transform=axs[0,1].transAxes)
+    axs[1,0].text(-0.1, 1.05, "(c)", size=18, ha="center", transform=axs[1,0].transAxes)
+    axs[1,1].text(-0.1, 1.05, "(d)", size=18, ha="center", transform=axs[1,1].transAxes)
 
     plt.savefig("zb_inversion_contours_regularization_effects.png", dpi=300, bbox_inches='tight', pad_inches=0)
 
@@ -1478,16 +1479,16 @@ def plot_zb_inversion_loss_components_cnn_structure():
     axs[0].set_ylim([yl, yh])
     axs[0].set_aspect('equal')
     #axs[0].set_xlabel('$x$ (m)', fontsize=16)
-    axs[0].tick_params(axis='x', labelsize=14)
-    axs[0].set_ylabel('$y$ (m)', fontsize=16)
-    axs[0].tick_params(axis='y', labelsize=14)
-    axs[0].set_title("Inversion using $(u,v)$ from NN$_{{(u,v,WSE)}}$, $e_m$ = {0:.3f} m".format(rmse_all_uv_uvWSE), fontsize=16)
+    axs[0].tick_params(axis='x', labelsize=16)
+    axs[0].set_ylabel('$y$ (m)', fontsize=18)
+    axs[0].tick_params(axis='y', labelsize=16)
+    axs[0].set_title("Inversion using $(u,v)$ from NN$_{{(u,v,WSE)}}$, $e_m$ = {0:.3f} m".format(rmse_all_uv_uvWSE), fontsize=17)
     divider = make_axes_locatable(axs[0])
     cax = divider.append_axes("right", size="3%", pad=0.1)
-    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 7), cax=cax)
+    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 5), cax=cax)
     clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_zb.ax.tick_params(labelsize=12)
-    clb_zb.ax.set_title('(m)', fontsize=12)
+    clb_zb.ax.tick_params(labelsize=16)
+    clb_zb.ax.set_title('(m)', fontsize=16)
 
     # plot zb_inverted: uvWSE_uvWSE
     cf_zb = axs[1].contourf(X, Y, np.squeeze(zb_inverted_all_uvWSE_uvWSE_mean[:, :]), levels, vmin=min, vmax=max,
@@ -1496,16 +1497,16 @@ def plot_zb_inversion_loss_components_cnn_structure():
     axs[1].set_ylim([yl, yh])
     axs[1].set_aspect('equal')
     #axs[1].set_xlabel('$x$ (m)', fontsize=16)
-    axs[1].tick_params(axis='x', labelsize=14)
-    axs[1].set_ylabel('$y$ (m)', fontsize=16)
-    axs[1].tick_params(axis='y', labelsize=14)
-    axs[1].set_title("Inversion using $(u,v,WSE)$ from NN$_{{(u,v,WSE)}}$, $e_m$ = {0:.3f} m".format(rmse_all_uvWSE_uvWSE), fontsize=16)
+    axs[1].tick_params(axis='x', labelsize=16)
+    axs[1].set_ylabel('$y$ (m)', fontsize=18)
+    axs[1].tick_params(axis='y', labelsize=16)
+    axs[1].set_title("Inversion using $(u,v,WSE)$ from NN$_{{(u,v,WSE)}}$, $e_m$ = {0:.3f} m".format(rmse_all_uvWSE_uvWSE), fontsize=17)
     divider = make_axes_locatable(axs[1])
     cax = divider.append_axes("right", size="3%", pad=0.1)
-    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 7), cax=cax)
+    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 5), cax=cax)
     clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_zb.ax.tick_params(labelsize=12)
-    clb_zb.ax.set_title('(m)', fontsize=12)
+    clb_zb.ax.tick_params(labelsize=16)
+    clb_zb.ax.set_title('(m)', fontsize=16)
 
     # plot zb_inverted: uv_uv
     cf_zb = axs[2].contourf(X, Y, np.squeeze(zb_inverted_all_uv_uv_mean[:, :]), levels, vmin=min, vmax=max,
@@ -1513,17 +1514,17 @@ def plot_zb_inversion_loss_components_cnn_structure():
     axs[2].set_xlim([xl, xh])
     axs[2].set_ylim([yl, yh])
     axs[2].set_aspect('equal')
-    axs[2].set_xlabel('$x$ (m)', fontsize=16)
-    axs[2].tick_params(axis='x', labelsize=14)
-    axs[2].set_ylabel('$y$ (m)', fontsize=16)
-    axs[2].tick_params(axis='y', labelsize=14)
-    axs[2].set_title("Inversion using $(u,v)$ from NN$_{{(u,v)}}$, $e_m$ = {0:.3f} m".format(rmse_all_uv_uv), fontsize=16)
+    axs[2].set_xlabel('$x$ (m)', fontsize=18)
+    axs[2].tick_params(axis='x', labelsize=16)
+    axs[2].set_ylabel('$y$ (m)', fontsize=18)
+    axs[2].tick_params(axis='y', labelsize=16)
+    axs[2].set_title("Inversion using $(u,v)$ from NN$_{{(u,v)}}$, $e_m$ = {0:.3f} m".format(rmse_all_uv_uv), fontsize=17)
     divider = make_axes_locatable(axs[2])
     cax = divider.append_axes("right", size="3%", pad=0.1)
-    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 7), cax=cax)
+    clb_zb = fig.colorbar(cf_zb, ticks=np.linspace(min, max, 5), cax=cax)
     clb_zb.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_zb.ax.tick_params(labelsize=12)
-    clb_zb.ax.set_title('(m)', fontsize=12)
+    clb_zb.ax.tick_params(labelsize=16)
+    clb_zb.ax.set_title('(m)', fontsize=16)
 
     #add caption
     #axs[0].text(0.5, -0.35, "(a)", size=16, ha="center", transform=axs[0].transAxes)  #bottom center
@@ -1608,25 +1609,25 @@ def plot_zb_inversion_result_profiles_uv_uncertainty(zb_inverted_result_filename
     axs[0].set_xlim([xl, xh])
     axs[0].set_ylim([-0.5, 0.5])
     #axs[].set_aspect('equal')
-    axs[0].set_xlabel('$x$ (m)', fontsize=16)
-    axs[0].tick_params(axis='x', labelsize=14)
-    axs[0].set_ylabel('$z_b$ (m)', fontsize=16)
-    axs[0].tick_params(axis='y', labelsize=14)
+    axs[0].set_xlabel('$x$ (m)', fontsize=18)
+    axs[0].tick_params(axis='x', labelsize=16)
+    axs[0].set_ylabel('$z_b$ (m)', fontsize=18)
+    axs[0].tick_params(axis='y', labelsize=16)
     axs[0].set_yticks(np.linspace(-0.5,0.5,5))
 
     # plot cross-sectional profiles
     axs[1].set_xlim([yl, yh])
     axs[1].set_ylim([-0.5, 0.5])
     # axs[1].set_aspect('equal')
-    axs[1].set_xlabel('$y$ (m)', fontsize=16)
-    axs[1].tick_params(axis='x', labelsize=14)
-    axs[1].set_ylabel('$z_b$ (m)', fontsize=16)
-    axs[1].tick_params(axis='y', labelsize=14)
+    axs[1].set_xlabel('$y$ (m)', fontsize=18)
+    axs[1].tick_params(axis='x', labelsize=16)
+    axs[1].set_ylabel('$z_b$ (m)', fontsize=18)
+    axs[1].tick_params(axis='y', labelsize=16)
     axs[1].set_yticks(np.linspace(-0.5, 0.5, 5))
 
     #add caption
-    axs[0].text(-0.1, 1.05, "(a)", size=16, ha="center", transform=axs[0].transAxes)   #upper left
-    axs[1].text(-0.1, 1.05, "(b)", size=16, ha="center", transform=axs[1].transAxes)
+    axs[0].text(-0.1, 1.05, "(a)", size=18, ha="center", transform=axs[0].transAxes)   #upper left
+    axs[1].text(-0.1, 1.05, "(b)", size=18, ha="center", transform=axs[1].transAxes)
 
     #plot the zb_truth
     axs[0].plot(x, zb_truth[n_row_middle, :] , 'k', linewidth=2, label='$z_b$ (truth)')
@@ -1653,8 +1654,8 @@ def plot_zb_inversion_result_profiles_uv_uncertainty(zb_inverted_result_filename
     axs[1].fill_between(y, crossline_lower_bound, crossline_upper_bound, color="red", alpha=0.3)
 
 
-    axs[0].legend(loc='upper right', fontsize=14, frameon=False)
-    axs[1].legend(loc='upper right', fontsize=14, frameon=False)
+    axs[0].legend(loc='upper left', fontsize=16, frameon=False)
+    axs[1].legend(loc='upper left', fontsize=16, frameon=False)
 
     #plt.savefig("zb_inversion_profiles.png", dpi=300, bbox_inches='tight', pad_inches=0)
     plt.savefig("zb_inversion_profiles_uv_uncertainty.png", dpi=300, bbox_inches='tight', pad_inches=0)
@@ -2260,15 +2261,15 @@ def plot_inversion_losses(zb_inverted_result_filename):
         #plt.xlim([x_min, x_max])
         #plt.xlim([x_min, 600])  #have more control on the upper x limit
         #plt.ylim([v_min, v_max])
-        #plt.ylim([1e-4, v_max])  #have more control on the lower limit
+        plt.ylim([1e-6, 1e2])  #have more control on the lower limit
 
         plt.yscale('log')
 
-        plt.tick_params(axis='both', which='major', labelsize=12)
+        plt.tick_params(axis='both', which='major', labelsize=16)
 
-        plt.xlabel('Iterations', fontsize=14)
-        plt.ylabel('Losses for inversion', fontsize=14)
-        plt.legend(loc='upper right', fontsize=12, frameon=False)
+        plt.xlabel('Iterations', fontsize=18)
+        plt.ylabel('Losses for inversion', fontsize=18)
+        plt.legend(loc='upper right', fontsize=14, frameon=False)
         plt.savefig("inversion_loss_history"+str(i).zfill(4)+".png", dpi=300, bbox_inches='tight', pad_inches=0)
         #plt.show()
 
@@ -2433,17 +2434,17 @@ def plot_feature_maps_for_publication(model, input, data_loader):
     axs[0, 0].set_xlim([xl, xh])
     axs[0, 0].set_ylim([yl, yh])
     axs[0, 0].set_aspect('equal')
-    axs[0, 0].set_ylabel('$y$ (m)', fontsize=16)
-    axs[0, 0].tick_params(axis='y', labelsize=14)
-    axs[0, 0].set_xlabel('$x$ (m)', fontsize=16)
-    axs[0, 0].tick_params(axis='x', labelsize=14)
-    axs[0, 0].set_title("Example $z_b$ (truth)", fontsize=16)
-    axs[0, 0].text(-0.05, 1.1, "(a)", size=16, ha="center", transform=axs[0,0].transAxes)
+    axs[0, 0].set_ylabel('$y$ (m)', fontsize=18)
+    axs[0, 0].tick_params(axis='y', labelsize=16)
+    axs[0, 0].set_xlabel('$x$ (m)', fontsize=18)
+    axs[0, 0].tick_params(axis='x', labelsize=16)
+    axs[0, 0].set_title("Example $z_b$ (truth)", fontsize=18)
+    axs[0, 0].text(-0.05, 1.1, "(a)", size=18, ha="center", transform=axs[0,0].transAxes)
     divider = make_axes_locatable(axs[0, 0])
     cax = divider.append_axes("right", size="3%", pad=0.1)
-    clb_zb_truth = fig.colorbar(cf_zb_truth, ticks=np.linspace(vmin, vmax, 7), cax=cax)
+    clb_zb_truth = fig.colorbar(cf_zb_truth, ticks=np.linspace(vmin, vmax, 5), cax=cax)
     clb_zb_truth.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_zb_truth.ax.tick_params(labelsize=12)
+    clb_zb_truth.ax.tick_params(labelsize=16)
 
     #plot first feature map
     f = np.squeeze(np.flip(feature_maps[:, :, :, 1]))
@@ -2454,17 +2455,17 @@ def plot_feature_maps_for_publication(model, input, data_loader):
     #axs[0, 1].set_xlim([xl, xh])
     #axs[0, 1].set_ylim([yl, yh])
     axs[0, 1].set_aspect('equal')
-    axs[0, 1].set_ylabel('$y$', fontsize=16)
-    axs[0, 1].tick_params(axis='y', labelsize=14)
-    axs[0, 1].set_xlabel('$x$', fontsize=16)
-    axs[0, 1].tick_params(axis='x', labelsize=14)
-    axs[0, 1].set_title("Feature map 0", fontsize=16)
-    axs[0, 1].text(-0.05, 1.1, "(b)", size=16, ha="center", transform=axs[0, 1].transAxes)
+    axs[0, 1].set_ylabel('$y$', fontsize=18)
+    axs[0, 1].tick_params(axis='y', labelsize=16)
+    axs[0, 1].set_xlabel('$x$', fontsize=18)
+    axs[0, 1].tick_params(axis='x', labelsize=16)
+    axs[0, 1].set_title("Feature map 0", fontsize=18)
+    axs[0, 1].text(-0.05, 1.1, "(b)", size=18, ha="center", transform=axs[0, 1].transAxes)
     divider = make_axes_locatable(axs[0, 1])
     cax = divider.append_axes("right", size="3%", pad=0.1)
-    clb_zb_truth = fig.colorbar(cf_zb_truth, ticks=np.linspace(vmin, vmax, 7), cax=cax)
+    clb_zb_truth = fig.colorbar(cf_zb_truth, ticks=np.linspace(vmin, vmax, 5), cax=cax)
     clb_zb_truth.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_zb_truth.ax.tick_params(labelsize=12)
+    clb_zb_truth.ax.tick_params(labelsize=16)
 
     # plot second feature map
     f = np.squeeze(np.flip(feature_maps[:, :, :, 2]))
@@ -2475,17 +2476,17 @@ def plot_feature_maps_for_publication(model, input, data_loader):
     #axs[1, 0].set_xlim([xl, xh])
     #axs[1, 0].set_ylim([yl, yh])
     axs[1, 0].set_aspect('equal')
-    axs[1, 0].set_ylabel('$y$', fontsize=16)
-    axs[1, 0].tick_params(axis='y', labelsize=14)
-    axs[1, 0].set_xlabel('$x$', fontsize=16)
-    axs[1, 0].tick_params(axis='x', labelsize=14)
-    axs[1, 0].set_title("Feature map 2", fontsize=16)
+    axs[1, 0].set_ylabel('$y$', fontsize=18)
+    axs[1, 0].tick_params(axis='y', labelsize=16)
+    axs[1, 0].set_xlabel('$x$', fontsize=18)
+    axs[1, 0].tick_params(axis='x', labelsize=16)
+    axs[1, 0].set_title("Feature map 2", fontsize=18)
     axs[1, 0].text(-0.05, 1.1, "(c)", size=16, ha="center", transform=axs[1, 0].transAxes)
     divider = make_axes_locatable(axs[1, 0])
     cax = divider.append_axes("right", size="3%", pad=0.1)
-    clb_zb_truth = fig.colorbar(cf_zb_truth, ticks=np.linspace(vmin, vmax, 7), cax=cax)
+    clb_zb_truth = fig.colorbar(cf_zb_truth, ticks=np.linspace(vmin, vmax, 5), cax=cax)
     clb_zb_truth.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_zb_truth.ax.tick_params(labelsize=12)
+    clb_zb_truth.ax.tick_params(labelsize=16)
 
     # plot zb at inversion initial iteration
     vmin = -0.5
@@ -2496,17 +2497,17 @@ def plot_feature_maps_for_publication(model, input, data_loader):
     axs[1, 1].set_xlim([xl, xh])
     axs[1, 1].set_ylim([yl, yh])
     axs[1, 1].set_aspect('equal')
-    axs[1, 1].set_ylabel('$y$ (m)', fontsize=16)
-    axs[1, 1].tick_params(axis='y', labelsize=14)
-    axs[1, 1].set_xlabel('$x$ (m)', fontsize=16)
-    axs[1, 1].tick_params(axis='x', labelsize=14)
+    axs[1, 1].set_ylabel('$y$ (m)', fontsize=18)
+    axs[1, 1].tick_params(axis='y', labelsize=16)
+    axs[1, 1].set_xlabel('$x$ (m)', fontsize=18)
+    axs[1, 1].tick_params(axis='x', labelsize=16)
     axs[1, 1].set_title("Inverted $z_b$ at iteration 20", fontsize=16)
-    axs[1, 1].text(-0.05, 1.1, "(d)", size=16, ha="center", transform=axs[1, 1].transAxes)
+    axs[1, 1].text(-0.05, 1.1, "(d)", size=18, ha="center", transform=axs[1, 1].transAxes)
     divider = make_axes_locatable(axs[1, 1])
     cax = divider.append_axes("right", size="3%", pad=0.1)
-    clb_zb_truth = fig.colorbar(cf_zb_truth, ticks=np.linspace(vmin, vmax, 7), cax=cax)
+    clb_zb_truth = fig.colorbar(cf_zb_truth, ticks=np.linspace(vmin, vmax, 5), cax=cax)
     clb_zb_truth.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-    clb_zb_truth.ax.tick_params(labelsize=12)
+    clb_zb_truth.ax.tick_params(labelsize=16)
 
     plt.savefig("feature_maps_inversion.png", dpi=300, bbox_inches='tight', pad_inches=0)
 
@@ -2809,8 +2810,7 @@ def calculate_relative_and_absolute_errors_for_all_test_cases():
 def plot_prediction_l2norms_histogram():
 
     # prediction results: (u,v) out of NN_(u,v,WSE)
-    prediction_results = np.load(
-        'uvWSE_cases/sampled_32_128_3000/prediction_results.npz')
+    prediction_results = np.load("prediction_results.npz")
 
     prediction_l2norms = prediction_results['prediction_l2norms']  #/(32*128)
 
@@ -2831,7 +2831,7 @@ def plot_prediction_l2norms_histogram():
     prediction_l2norms_percentiles['q95'] = q95
 
     #save the percentiles to json file
-    with open("uvWSE_cases/sampled_32_128_3000/prediction_l2norms_percentiles.json", "w") as outfile:
+    with open("prediction_l2norms_percentiles.json", "w") as outfile:
         json.dump(prediction_l2norms_percentiles, outfile)
 
     bin_width = 2 * (q75 - q25) * len(prediction_l2norms) ** (-1 / 3)
@@ -2851,13 +2851,13 @@ def plot_prediction_l2norms_histogram():
 
 
     # Annotations
-    plt.text(q5, 4, "5th", size=14, alpha=1)
-    plt.text(q50, 8.1, "50th", size=14, alpha=1)
-    plt.text(q95, 13.1, "95th Percentile", size=14, alpha=1)
+    plt.text(q5, 4, "5th", size=18, alpha=1)
+    plt.text(q50, 8.1, "50th", size=18, alpha=1)
+    plt.text(q95, 13.1, "95th Percentile", size=18, alpha=1)
 
-    plt.tick_params(axis='both', which='major', labelsize=12)
-    plt.xlabel("Surrogate prediction error L2 norm (only considering $u$ and $v$)", fontsize=14)
-    plt.ylabel("Count", fontsize=14)
+    plt.tick_params(axis='both', which='both', labelsize=16)
+    plt.xlabel("Surrogate prediction error L2 norm (only considering $u$ and $v$)", fontsize=18)
+    plt.ylabel("Count", fontsize=18)
     plt.savefig("surrogate_prediction_l2norm_histogram.png", dpi=300, bbox_inches='tight', pad_inches=0)
 
     plt.show()
@@ -2945,19 +2945,19 @@ def zb_inversion_process_for_publication(config_filename):
             axs[row, col].set_ylim([yl, yh])
             axs[row, col].set_aspect('equal')
             if row == 3:
-                axs[row, col].set_xlabel('$x$ (m)', fontsize=16)
-            axs[row, col].tick_params(axis='x', labelsize=14)
+                axs[row, col].set_xlabel('$x$ (m)', fontsize=18)
+            axs[row, col].tick_params(axis='x', labelsize=16)
             if col == 0:
-                axs[row, col].set_ylabel('$y$ (m)', fontsize=16)
+                axs[row, col].set_ylabel('$y$ (m)', fontsize=18)
 
-            axs[row, col].tick_params(axis='y', labelsize=14)
-            axs[row, col].set_title("Inversion iteration "+str(ite_numbers_for_plot[row][col]), fontsize=16)
+            axs[row, col].tick_params(axis='y', labelsize=16)
+            axs[row, col].set_title("Inversion iteration "+str(ite_numbers_for_plot[row][col]), fontsize=18)
             divider = make_axes_locatable(axs[row, col])
             cax = divider.append_axes("right", size="3%", pad=0.1)
-            clb_zb_inverted = fig.colorbar(cf_zb_inverted, ticks=np.linspace(zb_min, zb_max, 7), cax=cax)
+            clb_zb_inverted = fig.colorbar(cf_zb_inverted, ticks=np.linspace(zb_min, zb_max, 5), cax=cax)
             clb_zb_inverted.ax.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-            clb_zb_inverted.ax.tick_params(labelsize=12)
-            clb_zb_inverted.ax.set_title('(m)', fontsize=12)
+            clb_zb_inverted.ax.tick_params(labelsize=16)
+            clb_zb_inverted.ax.set_title('(m)', fontsize=16)
 
     plt.savefig("zb_inversion_process.png", dpi=300, bbox_inches='tight', pad_inches=0)
 
@@ -3028,11 +3028,12 @@ def plot_L_curve(losses_L_curve_file_name):
         plt.axvline(i[0], alpha=i[1], ymax=i[2], color='b', linewidth=2, linestyle=":")
 
     # Annotations
-    plt.text(q5+0.1e-1, 1e-2, "5th", size=12, alpha=1)
-    plt.text(q50+0.1e-1, 1e-2, "50th", size=12, alpha=1)
-    plt.text(q95+0.1e-1, 1e-2, "95th percentile of \n surrogate prediction\n error L2 norm", size=12, alpha=1)
+    plt.text(q5+0.1e-1, 1e-2, "5th", size=14, alpha=1)
+    plt.text(q50+0.1e-1, 1e-2, "50th", size=14, alpha=1)
+    plt.text(q95+0.1e-1, 1e-2, "95th percentile of \n surrogate prediction\n error L2 norm", size=14, alpha=1)
 
-    plt.tick_params(axis='both', which='major', labelsize=12)
+    plt.tick_params(axis='both', which='major', labelsize=14)
+    plt.tick_params(axis='both', which='minor', labelsize=14)
 
     # plt.title('L-curve')
     plt.xlabel('Prediction loss norm $L_{prediction}$', fontsize=16)

@@ -620,7 +620,7 @@ if __name__ == '__main__':
     #visualize filters and feature maps
     #visualize_filters_feature_maps(config_filename=config_filename, trained_model_data_filename=trained_model_data_filename)
 
-    specific_utilities.calculate_relative_and_absolute_errors_for_all_test_cases()
+    #specific_utilities.calculate_relative_and_absolute_errors_for_all_test_cases()
 
     #predict(config_filename=config_filename, trained_model_data_filename=trained_model_data_filename, nPlotSamples=1)
 
@@ -636,7 +636,7 @@ if __name__ == '__main__':
 
     #specific_utilities.plot_zb_inversion_result(zb_inverted_save_filename, config_filename=config_filename)
     #specific_utilities.plot_zb_inversion_result_profiles(zb_inverted_save_filename, config_filename=config_filename)
-    #specific_utilities.plot_zb_inversion_result_profiles_uv_uncertainty(zb_inverted_save_filename, config_filename=config_filename)
+    specific_utilities.plot_zb_inversion_result_profiles_uv_uncertainty(zb_inverted_save_filename, config_filename=config_filename)
     #specific_utilities.plot_zb_inversion_WSE_comparison(zb_inverted_save_filename)
     #specific_utilities.plot_inversion_losses(zb_inverted_save_filename)
 
@@ -650,6 +650,8 @@ if __name__ == '__main__':
     #specific_utilities.zb_inversion_process_for_publication(config_filename)
 
     #specific_utilities.plot_uvWSE_masking_vs_original(zb_inverted_save_filename)
+
+    #specific_utilities.plot_prediction_l2norms_histogram()
 
     #prior_info()
 

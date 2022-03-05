@@ -2,7 +2,9 @@
 
 ### by Xiaofeng Liu
 
-This folder contains the code for bathymetry inversion work done with a deep-learning-based surrogate model. 
+This folder contains the code for bathymetry inversion work done with a deep-learning-based surrogate model. A manuscript underview:
+
+Xiaofeng Liu, Yalan Song, and Chaopeng Shen (2022). Bathymetry Inversion using a Deep-Learning-Based Surrogate for Shallow Water Equations Solvers.
 
 ## Description of files:
 
