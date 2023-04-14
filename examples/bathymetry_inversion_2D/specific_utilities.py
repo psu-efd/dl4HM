@@ -75,13 +75,14 @@ def plot_training_validation_losses(training_history_filename):
     plt.xlabel('Epoch', fontsize=18)
     plt.ylabel('Loss', fontsize=18)
     plt.xlim([0,100])
-    #plt.ylim([1e-5, 1e-2])
-    plt.ylim([-0.0001,0.0015])
-    #plt.yscale('log')
+    plt.ylim([1e-5, 1e-2])
+    #plt.ylim([-0.0001,0.0015])
+    plt.yscale('log')
     #plt.ylim([0, 0.01])
     plt.tick_params(axis='both', labelsize=18)
     plt.legend(loc='upper right', fontsize=18, frameon=False)
     plt.savefig("training_validtion_losses.png", dpi=300, bbox_inches='tight', pad_inches=0)
+    plt.savefig("training_validtion_losses_log.png", dpi=300, bbox_inches='tight', pad_inches=0)
     plt.show()
 
     #plot learning rate

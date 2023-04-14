@@ -43,6 +43,8 @@ class SWEs2DModelInverter(BaseInverter):
         self.masks_np_org = None
         self.masks_np = None
         self.masks = None
+        self.dmasks_dx = None
+        self.dmasks_dy = None
 
         # default masks are just 1.0
         self.masks_np_org = np.ones(shape=self.uvWSE_target_np.shape)
@@ -59,20 +61,27 @@ class SWEs2DModelInverter(BaseInverter):
                     self.masks_np_org = np.load(mask_filename)['masks']
 
                     # make the masks the same shape as uvWSE_target and uvWSE_pred
-                    if "use_uv_only" in config.inverter:  # only need u and v
-                        self.masks_np = np.repeat(self.masks_np_org[:, :, np.newaxis], 2, axis=2)
+                    if "use_uv_only" in config.inverter:
+                        if config.converter["use_uv_only"]: # only need u and v
+                            self.masks_np = np.repeat(self.masks_np_org[:, :, np.newaxis], 2, axis=2)
+                        else:
+                            self.masks_np = np.repeat(self.masks_np_org[:, :, np.newaxis], 3, axis=2)
                     else: #use u, v, and WSE
                         self.masks_np = np.repeat(self.masks_np_org[:, :, np.newaxis], 3, axis=2)
 
                     self.masks_np = self.masks_np[np.newaxis, :, :, :]  # expand one more dimension
 
-        self.masks = tf.Variable(self.masks_np, trainable=False, name="masks", dtype=np.float32)
+        #self.masks = tf.Variable(self.masks_np, trainable=False, name="masks", dtype=np.float32)
+        self.masks = tf.Variable(self.masks_np_org[np.newaxis, :, :, np.newaxis], trainable=False, name="masks", dtype=np.float32)
+
+        self.dmasks_dx = 1 - tf.math.abs(tf.experimental.numpy.diff(self.masks, axis=2))
+        self.dmasks_dy = 1 - tf.math.abs(tf.experimental.numpy.diff(self.masks, axis=1))
 
         #a multiplication factor for value loss due to masking. This is because the masking will reduce the
         #value loss magnitude. To have the same comparison with other losses, we need this multiplication factor
-        self.masks_multiplication_factor = (self.output_data_shape[0]*self.output_data_shape[1])/(self.masks_np_org.sum()/self.masks_np_org.shape[-1])
+        self.masks_multiplication_factor = (self.output_data_shape[0]*self.output_data_shape[1])/(self.masks_np_org.sum())
         print("In inverter: masks_multiplication_factor = ", self.masks_multiplication_factor)
-        print("In inverter: using ", self.masks_np_org.sum()/self.masks_np_org.shape[-1], " subset out of ",  (self.output_data_shape[0]*self.output_data_shape[1]))
+        print("In inverter: using ", self.masks_np_org.sum(), " subset of pixels out of ",  (self.output_data_shape[0]*self.output_data_shape[1]))
 
         #the inversion variable, i.e., zb
         #self.zb_np = np.zeros(self.input_data_shape)
@@ -148,28 +157,30 @@ class SWEs2DModelInverter(BaseInverter):
 
         for i in range(self.config.inverter.nSteps):
             #save intermediate zb
-            if i == 0:
-                self.zb_intermediate = np.squeeze(self.zb.numpy()[0])
-            else:
-                self.zb_intermediate = np.dstack((self.zb_intermediate, np.squeeze(self.zb.numpy()[0])))
+            if bSave_intermediate:
+                if i == 0:
+                    self.zb_intermediate = np.squeeze(self.zb.numpy()[0])
+                else:
+                    self.zb_intermediate = np.dstack((self.zb_intermediate, np.squeeze(self.zb.numpy()[0])))
 
             with tf.GradientTape() as tape:
                 # use the surrogate NN model to make a prediction
-                self.uvWSE_pred = self.modelWrapper.model(self.zb, training=False)
+                #self.uvWSE_pred = self.modelWrapper.model(self.zb, training=False)
+                self.uvWSE_pred = self.modelWrapper.model(tf.math.multiply(self.masks, self.zb), training=False)
 
                 # difference between target and predicted WSE values
                 if self.b_need_to_extract_uv:
                     loss_prediction_error = tf.math.reduce_sum(
-                        tf.math.multiply(self.masks,
+                        #tf.math.multiply(self.masks,
                                          tf.math.squared_difference(self.uvWSE_target, self.uvWSE_pred[:,:,:,0:2])
-                                         )
+                        #                 )
                     )
                     #loss_prediction_error = tf.math.reduce_mean(tf.math.squared_difference(self.uvWSE_target, self.uvWSE_pred[:,:,:,0:2]))
                 else:
                     loss_prediction_error = tf.math.reduce_sum(
-                        tf.math.multiply(self.masks,
+                        #tf.math.multiply(self.masks,
                                          tf.math.squared_difference(self.uvWSE_target, self.uvWSE_pred)
-                                         )
+                        #                 )
                     )
                     # loss_prediction_error = tf.math.reduce_mean(tf.math.squared_difference(self.uvWSE_target, self.uvWSE_pred))
 
@@ -194,8 +205,10 @@ class SWEs2DModelInverter(BaseInverter):
                 self.loss += loss_value_regularization
 
                 # use gradient of zb (slope) as the regularizer (to favor smoother solutions)
-                dzb_dx = tf.math.abs(tf.experimental.numpy.diff(self.zb, axis=2))
-                dzb_dy = tf.math.abs(tf.experimental.numpy.diff(self.zb, axis=1))
+                # mask out the slope values on the boundary of simulation domain
+                dzb_dx = tf.math.multiply(self.dmasks_dx, tf.math.abs(tf.experimental.numpy.diff(self.zb, axis=2)))
+                dzb_dy = tf.math.multiply(self.dmasks_dy, tf.math.abs(tf.experimental.numpy.diff(self.zb, axis=1)))
+
                 #loss_slope = self.config.inverter.slope_regularization_factor * (tf.math.reduce_mean(dzb_dx) + tf.math.reduce_mean(dzb_dy))
                 #loss_slope = (self.config.inverter.slope_regularization_factor**2) * (
                 #            tf.math.reduce_sum(tf.math.square(
@@ -225,7 +238,12 @@ class SWEs2DModelInverter(BaseInverter):
 
             grads = tape.gradient(self.loss, [self.zb])
 
+            # mask out pixels not in the simulation domain
+            grads[0] = tf.math.multiply(self.masks, grads[0])
+
             self.optimizer.apply_gradients(zip(grads, [self.zb]))
+
+
 
 
     def invert_scipy(self,bSave_intermediate=False):

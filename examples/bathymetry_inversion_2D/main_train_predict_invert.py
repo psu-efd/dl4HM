@@ -603,16 +603,16 @@ if __name__ == '__main__':
     #config_filename = 'surrogate_bathymetry_inversion_2D_config_uv.json'
 
     #train(config_filename=config_filename)
-    #specific_utilities.plot_training_validation_losses("training_history_uvWSE.json")
+    specific_utilities.plot_training_validation_losses("training_history_uvWSE.json")
 
     trained_model_data_filename = "./experiments/2022-01-23/uvWSE/checkpoints/uvWSE.hdf5"
     #trained_model_data_filename = "./experiments/2022-01-25/uv/checkpoints/uv.hdf5"
 
-    #zb_inverted_save_filename = "zb_inverted_result_0592.npz"
+    zb_inverted_save_filename = "zb_inverted_result_0592.npz"
     #zb_inverted_save_filename = "zb_inverted_result_0592_no_value_reg.npz"
     #zb_inverted_save_filename = "zb_inverted_result_0592_no_slope_reg.npz"
     #zb_inverted_save_filename = "zb_inverted_result_0592_no_regs.npz"
-    zb_inverted_save_filename = "zb_inverted_result_0592_uv_uncertainty.npz"
+    #zb_inverted_save_filename = "zb_inverted_result_0592_uv_uncertainty.npz"
     #zb_inverted_save_filename = "zb_inverted_result_0.npz"
     #zb_inverted_save_filename = "zb_inverted_result_uvWSE_NN_uvWSE.npz"
     #zb_inverted_save_filename = "zb_inverted_result_0592_uv_NN_uv.npz"
@@ -636,7 +636,7 @@ if __name__ == '__main__':
 
     #specific_utilities.plot_zb_inversion_result(zb_inverted_save_filename, config_filename=config_filename)
     #specific_utilities.plot_zb_inversion_result_profiles(zb_inverted_save_filename, config_filename=config_filename)
-    specific_utilities.plot_zb_inversion_result_profiles_uv_uncertainty(zb_inverted_save_filename, config_filename=config_filename)
+    #specific_utilities.plot_zb_inversion_result_profiles_uv_uncertainty(zb_inverted_save_filename, config_filename=config_filename)
     #specific_utilities.plot_zb_inversion_WSE_comparison(zb_inverted_save_filename)
     #specific_utilities.plot_inversion_losses(zb_inverted_save_filename)
 

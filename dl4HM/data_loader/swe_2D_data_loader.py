@@ -37,12 +37,21 @@ class SWEs2DDataLoader(BaseDataLoader):
         #min and max of variables for training (for scaling purpuse)
         self.variables_min_max = None
 
-    def parse_flow_data(self, serialized_example, bWithIBathy=False):
-        features = {
-            'iBathy': tf.io.FixedLenFeature([], tf.int64),
-            'zb': tf.io.FixedLenFeature([], tf.string),
-            'vel_WSE': tf.io.FixedLenFeature([], tf.string)
-        }
+    def parse_flow_data(self, serialized_example, bHasInDomainMask=False, bWithIBathy=False):
+        if bHasInDomainMask:
+            features = {
+                'iBathy': tf.io.FixedLenFeature([], tf.int64),
+                'zb': tf.io.FixedLenFeature([], tf.string),
+                'vel_WSE': tf.io.FixedLenFeature([], tf.string),
+                'bInDomain': tf.io.FixedLenFeature([], tf.string),
+            }
+        else:
+            features = {
+                'iBathy': tf.io.FixedLenFeature([], tf.int64),
+                'zb': tf.io.FixedLenFeature([], tf.string),
+                'vel_WSE': tf.io.FixedLenFeature([], tf.string)
+            }
+
         parsed_features = tf.io.parse_single_example(serialized_example, features)
 
         iBathy = parsed_features['iBathy']
@@ -53,10 +62,20 @@ class SWEs2DDataLoader(BaseDataLoader):
         vel_WSE = parsed_features['vel_WSE']  # get byte string
         vel_WSE = tf.io.parse_tensor(vel_WSE, out_type=tf.float64)  # restore 2D array from byte string
 
+        if bHasInDomainMask:
+            bInDomain = parsed_features['bInDomain']  # get byte string
+            bInDomain = tf.io.parse_tensor(bInDomain, out_type=tf.float64)  # restore 2D array from byte string
+
         if not bWithIBathy:  # don't return the iBathy data (not needed for training; cause error)
-            return zb, vel_WSE
+            if not bHasInDomainMask:
+                return zb, vel_WSE
+            else:
+                return zb, vel_WSE, bInDomain
         else:
-            return iBathy, zb, vel_WSE
+            if not bHasInDomainMask:
+                return iBathy, zb, vel_WSE
+            else:
+                return iBathy, zb, vel_WSE, bInDomain
 
 
     def load_training_validation_data(self):
@@ -93,7 +112,7 @@ class SWEs2DDataLoader(BaseDataLoader):
         self.training_dataset = training_dataset
         self.validation_dataset = validation_dataset
 
-    def load_test_data(self):
+    def load_test_data(self, bHasInDomainMask=False):
         """Load test data
 
         :return:
@@ -111,7 +130,7 @@ class SWEs2DDataLoader(BaseDataLoader):
 
         # Transform binary data into image arrays
         # test data also include the iBathy ID
-        test_data = test_data.map(lambda x: self.parse_flow_data(x, bWithIBathy=True))
+        test_data = test_data.map(lambda x: self.parse_flow_data(x, bHasInDomainMask=bHasInDomainMask, bWithIBathy=True))
 
         self.test_dataset = test_data
 
@@ -181,9 +200,9 @@ class SWEs2DDataLoader(BaseDataLoader):
 
         return self.validation_dataset
 
-    def get_test_data(self):
+    def get_test_data(self, bHasInDomainMask=False):
         if self.test_dataset == None:
-            self.load_test_data()
+            self.load_test_data(bHasInDomainMask=bHasInDomainMask)
 
         return self.test_dataset
 
