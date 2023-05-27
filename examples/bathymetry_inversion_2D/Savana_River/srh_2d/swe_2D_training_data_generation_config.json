@@ -1,0 +1,38 @@
+{
+  "case": {
+    "name": "SRH-2D training data for bathymetry inversion"
+  },
+  "bathymetry parameters": {
+    "comment": "parameters for generating training data from SRH-2D",
+    "target_ele_low": 20,
+	"target_ele_high": 30,
+	"min_s": -10,
+	"max_s": 1300,
+	"min_t": -75,
+	"max_t": 90,
+	"lim_s": 8,
+	"lim_t": 1,
+    "nGrids": 160,
+	"nGridt": 20,
+    "nSamples": 200,
+	"chosen_nodes_st_vtk_file_name": "chosen_nodes_st.vtk",
+	"chosen_nodes_xy_vtk_file_name": "chosen_nodes_xy.vtk",
+	"bathymetry_data_file_name": "twoD_bathymetry_data.npz",
+	"gmsh_flat_file_name": "savana.msh"
+  },
+  "SRH-2D cases": {
+    "comment": "parameters for setting up the base case, including parameters for Gmsh.",
+	"srhhydro_filename": "savana_SI.srhhydro",
+	"sample_result_n_rows": 64,
+	"sample_result_n_cols": 256,
+	"variables_min_max_file_name": "variables_min_max.json"
+  },
+  "data generation":{
+    "comment": "parameters for data generation, e.g., the fraction for training, validation, and test.",
+	"nSamples": 3080,
+	"training_fraction": 0.7,
+	"validation_fraction": 0.2,
+	"test_fraction": 0.1,
+	"uv_only": false
+  }
+}

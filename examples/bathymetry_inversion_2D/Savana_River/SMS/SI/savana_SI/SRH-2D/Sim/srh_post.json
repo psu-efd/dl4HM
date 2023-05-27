@@ -1,0 +1,1 @@
+{"OUT_FILE":"Savana_XMDFC.h5","SRH_POST_OUT_FILE":"Savana_XMDF.h5","GEOM_FILE":"savana_SI.srhgeom","ARC_IDS":[1,2],"GRID_UUID":"42a495ea-2fff-4371-af63-b298b115ecec","LENGTH_UNITS":"GridUnit \"METER\"","DATASET_NAMES":["B_Stress_N_p_m2","Froude","Vel_Mag_m_p_s","Velocity","Water_Depth_m","Water_Elev_m"]}

@@ -8,7 +8,8 @@
 
 examples/misc
 
-examples/bathymetry_inversion_2D/experiments
+examples/bathymetry_inversion_2D/two_rectangular_channel/experiments
+examples/bathymetry_inversion_2D/Savana_River/sampled_64_256_st_2080cases/experiments
 
 examples/backwater_curve_surrogate_model/experiments
 
